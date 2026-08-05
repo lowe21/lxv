@@ -34,14 +34,14 @@ func Init() {
 				strings := fmt.Sprintf("%+v", value)
 				if strings != "" {
 					array := gstr.Split(strings, delimiter)
-					temp := make([]string, 0, len(array))
+					stacks := make([]string, 0, len(array))
 					for _, item := range array {
 						if item != content {
-							temp = append(temp, item)
+							stacks = append(stacks, item)
 						}
 					}
-					if len(temp) > 0 {
-						stack = gstr.Join([]string{stack, gstr.Join(temp, delimiter)}, delimiter)
+					if len(stacks) > 0 {
+						stack = gstr.Join([]string{stack, gstr.Join(stacks, delimiter)}, delimiter)
 					}
 				}
 			}
