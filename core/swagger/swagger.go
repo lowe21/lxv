@@ -8,7 +8,7 @@ import (
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/net/goai"
 
-	"github.com/lowe21/lxv/middleware"
+	"github.com/lowe21/lxv/common"
 )
 
 var once sync.Once
@@ -48,9 +48,9 @@ func Init() {
 		}
 
 		openApi := server.GetOpenApi()
-		openApi.Config.CommonRequest = &middleware.CommonReq{}
+		openApi.Config.CommonRequest = &common.Req{}
 		openApi.Config.CommonRequestDataField = "Content"
-		openApi.Config.CommonResponse = &middleware.CommonRes{}
+		openApi.Config.CommonResponse = &common.Res{}
 		openApi.Config.CommonResponseDataField = "Data"
 		openApi.Info = goai.Info{
 			Title:       fmt.Sprintf("%s API Reference", server.GetName()),
