@@ -47,36 +47,32 @@ type Option func(*Options)
 
 func WithExpiry(expiry time.Duration) Option {
 	return func(options *Options) {
-		if expiry <= 0 {
-			expiry = gconv.Duration(defaultExpiry)
+		if expiry > 0 {
+			options.Expiry = expiry
 		}
-		options.Expiry = expiry
 	}
 }
 
 func WithTries(tries int) Option {
 	return func(options *Options) {
-		if tries <= 0 {
-			tries = defaultTries
+		if tries > 0 {
+			options.Tries = tries
 		}
-		options.Tries = tries
 	}
 }
 
 func WithRetryDelay(retryDelay time.Duration) Option {
 	return func(options *Options) {
-		if retryDelay <= 0 {
-			retryDelay = gconv.Duration(defaultRetryDelay)
+		if retryDelay > 0 {
+			options.RetryDelay = retryDelay
 		}
-		options.RetryDelay = retryDelay
 	}
 }
 
 func WithExtendDuration(extendDuration time.Duration) Option {
 	return func(options *Options) {
-		if extendDuration <= 0 {
-			extendDuration = gconv.Duration(defaultExtendDuration)
+		if extendDuration > 0 {
+			options.ExtendDuration = extendDuration
 		}
-		options.ExtendDuration = extendDuration
 	}
 }
