@@ -1,0 +1,71 @@
+package swagger
+
+import (
+	"fmt"
+	"sync"
+
+	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/net/ghttp"
+	"github.com/gogf/gf/v2/net/goai"
+
+	"github.com/lowe21/lxv/middleware"
+)
+
+var once sync.Once
+
+func Init() {
+	once.Do(func() {
+		server := g.Server()
+		server.SetSwaggerUITemplate(fmt.Sprintf(`
+<!doctype html>
+<html>
+	<head>
+		<title>%s API Reference</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+	</head>
+	<body>
+		<div id="app"></div>
+		<script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+		<script>
+			Scalar.createApiReference('#app', {
+				url: '{SwaggerUIDocUrl}',
+				proxyUrl: 'https://proxy.scalar.com'
+			})
+		</script>
+	</body>
+</html>
+`, server.GetName()))
+
+		user := g.Config().MustGet(nil, "server.swaggerUser").String()
+		pass := g.Config().MustGet(nil, "server.swaggerPass").String()
+		if user != "" && pass != "" {
+			server.BindHookHandler(server.GetOpenApiPath(), ghttp.HookBeforeServe, func(request *ghttp.Request) {
+				if !request.BasicAuth(user, pass) {
+					request.ExitAll()
+				}
+			})
+		}
+
+		openApi := server.GetOpenApi()
+		openApi.Config.CommonRequest = &middleware.CommonReq{}
+		openApi.Config.CommonRequestDataField = "Content"
+		openApi.Config.CommonResponse = &middleware.CommonRes{}
+		openApi.Config.CommonResponseDataField = "Data"
+		openApi.Info = goai.Info{
+			Title:       fmt.Sprintf("%s API Reference", server.GetName()),
+			Description: "Special note: The `content` in the request parameter needs to be passed in as a JSON string, not an object",
+		}
+		openApi.Components = goai.Components{
+			SecuritySchemes: goai.SecuritySchemes{
+				"jwt": goai.SecuritySchemeRef{
+					Value: &goai.SecurityScheme{
+						Type:         "http",
+						Scheme:       "bearer",
+						BearerFormat: "Bearer Token",
+					},
+				},
+			},
+		}
+	})
+}
