@@ -21,6 +21,10 @@ type Graylog struct {
 
 func (g *Graylog) Send(ctx context.Context, gelf *Gelf) {
 	if err := gutil.Try(ctx, func(_ context.Context) {
+		if gelf != nil {
+			gelf.Version = g.options.Version
+		}
+
 		g.gelf <- gelf
 	}); err != nil {
 		log.Print(err)

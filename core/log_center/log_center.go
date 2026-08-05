@@ -10,7 +10,7 @@ import (
 	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/gogf/gf/v2/util/gconv"
 
-	"github.com/lowe21/lxv/core/log_center/graylog"
+	"github.com/lowe21/lxv/pkg/graylog"
 )
 
 var once sync.Once
@@ -51,7 +51,6 @@ func Init() {
 			}
 
 			logCenter.Send(ctx, &graylog.Gelf{
-				Version:      "1.1",
 				Host:         g.Server().GetName(),
 				ShortMessage: content,
 				FullMessage:  stack,

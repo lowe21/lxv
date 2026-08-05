@@ -12,6 +12,7 @@ const (
 	defaultChunkSize         = 8192
 	defaultWorkerNumber      = 1
 	defaultReconnectInterval = "5s"
+	defaultVersion           = "1.1"
 )
 
 type Options struct {
@@ -19,6 +20,7 @@ type Options struct {
 	ChunkSize         int
 	WorkerNumber      int
 	ReconnectInterval time.Duration
+	Version           string
 }
 
 func defaultOptions() *Options {
@@ -38,6 +40,9 @@ func defaultOptions() *Options {
 	}
 	if options.ReconnectInterval <= 0 {
 		options.ReconnectInterval = gconv.Duration(defaultReconnectInterval)
+	}
+	if options.Version == "" {
+		options.Version = defaultVersion
 	}
 
 	return options
@@ -78,5 +83,14 @@ func WorkerReconnectInterval(reconnectInterval time.Duration) Option {
 			reconnectInterval = gconv.Duration(defaultReconnectInterval)
 		}
 		options.ReconnectInterval = reconnectInterval
+	}
+}
+
+func WithVersion(version string) Option {
+	return func(options *Options) {
+		if version == "" {
+			version = defaultVersion
+		}
+		options.Version = version
 	}
 }
