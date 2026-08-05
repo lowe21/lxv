@@ -1,0 +1,9 @@
+dubbo:
+  config-center:            # 配置中心
+    protocol: nacos         # 协议
+    address: nacos:8848     # 地址
+    data-id: 9Z_QIWE        # 标识
+    group: DEFAULT_GROUP    # 分组
+    namespace: dubbo-local  # 命名空间
+    params:
+      nacos.logLevel: error # 日志级别
