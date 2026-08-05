@@ -64,9 +64,12 @@ func (r *RedMutex) extend(ctx context.Context) {
 		interval = gtime.S
 	}
 
-	times := gconv.Int(r.options.ExtendDuration.Seconds() / interval.Seconds())
-	if times <= 0 {
-		times = 1
+	times := 0
+	if r.options.ExtendDuration > 0 {
+		times = gconv.Int(r.options.ExtendDuration.Seconds() / interval.Seconds())
+		if times <= 0 {
+			times = 1
+		}
 	}
 
 	extendCtx, cancel := context.WithCancel(ctx)

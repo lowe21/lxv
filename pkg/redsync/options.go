@@ -11,7 +11,7 @@ const (
 	defaultExpiry         = "10s"
 	defaultTries          = 60
 	defaultRetryDelay     = "1s"
-	defaultExtendDuration = "10m"
+	defaultExtendDuration = "0"
 )
 
 type Options struct {
@@ -36,7 +36,7 @@ func defaultOptions() *Options {
 	if options.RetryDelay <= 0 {
 		options.RetryDelay = gconv.Duration(defaultRetryDelay)
 	}
-	if options.ExtendDuration <= 0 {
+	if options.ExtendDuration < 0 {
 		options.ExtendDuration = gconv.Duration(defaultExtendDuration)
 	}
 
@@ -71,7 +71,7 @@ func WithRetryDelay(retryDelay time.Duration) Option {
 
 func WithExtendDuration(extendDuration time.Duration) Option {
 	return func(options *Options) {
-		if extendDuration > 0 {
+		if extendDuration >= 0 {
 			options.ExtendDuration = extendDuration
 		}
 	}
