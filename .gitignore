@@ -1,0 +1,16 @@
+**/.DS_Store
+.buildpath
+.hgignore.swp
+.orig
+.project
+.swp
+.idea/
+.settings/
+.test/
+.vscode/
+main
+main.exe
+/build
+/cache
+/log
+*_test.go
