@@ -110,7 +110,7 @@ func Runner(ctx context.Context, name, pattern string, handler Handler) (err err
 		}()
 
 		if err := handler.Run(ctx); err != nil {
-			g.Log().Infof(ctx, "crontab %s error: %s", name, err.Error())
+			g.Log().Infof(ctx, "crontab %s error: %v", name, err)
 		} else {
 			g.Log().Infof(ctx, "crontab %s executed", name)
 		}

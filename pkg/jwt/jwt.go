@@ -1,9 +1,9 @@
 package jwt
 
 import (
-	"github.com/gogf/gf/v2/errors/gerror"
 	jwtv5 "github.com/golang-jwt/jwt/v5"
 
+	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/os/gtime"
 )
 
