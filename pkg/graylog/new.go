@@ -22,7 +22,7 @@ func New(opts ...Option) *Graylog {
 		if err := grpool.AddWithRecover(context.Background(), func(_ context.Context) {
 			graylog.worker()
 		}, func(_ context.Context, exception error) {
-			log.Printf("graylog worker exception %v", exception)
+			log.Printf("graylog worker exception: %v", exception)
 		}); err != nil {
 			panic(err)
 		}
