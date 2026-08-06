@@ -1,0 +1,43 @@
+package jwt
+
+import (
+	"time"
+
+	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/util/gconv"
+)
+
+const (
+	defaultKey     = "64f17cb03b83fe8dc188865b5a250920"
+	defaultExpires = "30d"
+	defaultRefresh = "60d"
+)
+
+type Options struct {
+	Issuer  string
+	Key     []byte
+	Expires time.Duration
+	Refresh time.Duration
+}
+
+func defaultOptions() *Options {
+	options := &Options{}
+	if err := g.Config().MustGet(nil, "jwt").Scan(options); err != nil {
+		panic(err)
+	}
+
+	if options.Issuer == "" {
+		options.Issuer = g.Server().GetName()
+	}
+	if len(options.Key) == 0 {
+		options.Key = gconv.Bytes(defaultKey)
+	}
+	if options.Expires <= 0 {
+		options.Expires = gconv.Duration(defaultExpires)
+	}
+	if options.Refresh <= 0 {
+		options.Refresh = gconv.Duration(defaultRefresh)
+	}
+
+	return options
+}
