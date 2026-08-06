@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"github.com/gogf/gf/v2/errors/gerror"
 	jwtv5 "github.com/golang-jwt/jwt/v5"
 
 	"github.com/gogf/gf/v2/os/gtime"
@@ -38,5 +39,13 @@ func (j *Jwt) ParseToken(token string, options ...jwtv5.ParserOption) (payload *
 }
 
 func (j *Jwt) ParseRefreshToken(token string, options ...jwtv5.ParserOption) (payload *Payload, err error) {
-	return j.ParseToken(token, append(options, jwtv5.WithLeeway(j.options.Refresh))...)
+	payload, err = j.ParseToken(token, options...)
+	if err != nil {
+		if gerror.Is(err, jwtv5.ErrTokenExpired) {
+			return j.ParseToken(token, append(options, jwtv5.WithLeeway(j.options.Refresh))...)
+		}
+		return
+	}
+
+	return
 }
