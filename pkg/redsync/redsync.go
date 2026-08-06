@@ -2,8 +2,6 @@ package redsync
 
 import (
 	"github.com/go-redsync/redsync/v4"
-
-	"github.com/gogf/gf/v2/util/gutil"
 )
 
 type RedSync struct {
@@ -12,16 +10,15 @@ type RedSync struct {
 }
 
 func (r *RedSync) Mutex(name string, opts ...Option) *RedMutex {
-	options := r.options
-	if len(opts) > 0 {
-		options = gutil.Copy(r.options).(*Options)
-		for _, opt := range opts {
-			opt(options)
+	options := *r.options
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&options)
 		}
 	}
 
 	return &RedMutex{
-		options: options,
+		options: &options,
 		mutex: r.sync.NewMutex(name,
 			redsync.WithExpiry(options.Expiry),
 			redsync.WithTries(options.Tries),
