@@ -71,7 +71,7 @@ func Response(request *ghttp.Request) {
 			err = util.Error(common.InvalidParam, err.Error())
 		default:
 			if _, ok := errCode.(util.ErrorCode); !ok {
-				if _, ok = errors.AsType[*redsync.ErrTaken, *redsync.ErrNodeTaken](err); ok {
+				if _, ok = errors.AsType[*redsync.ErrNodeTaken](err); ok {
 					err = common.SystemBusy
 				} else {
 					if lastErr := gerror.Unwrap(err); lastErr != nil {
