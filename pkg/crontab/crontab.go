@@ -35,7 +35,7 @@ var (
 func SetHandler(handler Handler) {
 	name := handler.Name()
 	if name == "" {
-		panic("handler missing name")
+		panic(fmt.Sprintf("%T missing handler name", handler))
 	}
 
 	rwMutex.Lock()
@@ -45,7 +45,7 @@ func SetHandler(handler Handler) {
 		handlers = map[string]Handler{}
 	}
 	if _, ok := handlers[name]; ok {
-		panic(fmt.Sprintf("handler %s already exists", name))
+		panic(fmt.Sprintf(`%T handler name "%s" already exists`, handler, name))
 	}
 	handlers[name] = handler
 }
@@ -58,7 +58,6 @@ func Start(ctx context.Context) {
 		}
 
 		rows := []string{"#", "NAME", "PATTERN", "HANDLER", "STATUS"}
-
 		table := tablewriter.NewTable(os.Stdout, tablewriter.WithConfig(tablewriter.Config{
 			Header: tw.CellConfig{
 				Merging: tw.CellMerging{Mode: tw.MergeBoth},
@@ -87,7 +86,7 @@ func Start(ctx context.Context) {
 			pattern := config.Pattern
 			handler, ok := handlers[name]
 			if !ok {
-				panic(fmt.Sprintf("crontab %s not found", name))
+				panic(fmt.Sprintf(`crontab "%s" not found`, name))
 			}
 
 			if err := Runner(ctx, name, pattern, handler); err != nil {
@@ -110,9 +109,9 @@ func Runner(ctx context.Context, name, pattern string, handler Handler) (err err
 		}()
 
 		if err := handler.Run(ctx); err != nil {
-			g.Log().Infof(ctx, "crontab %s error: %v", name, err)
+			g.Log().Infof(ctx, `crontab "%s" error: %v`, name, err)
 		} else {
-			g.Log().Infof(ctx, "crontab %s executed", name)
+			g.Log().Infof(ctx, `crontab "%s" executed`, name)
 		}
 	}, name); err != nil {
 		return
