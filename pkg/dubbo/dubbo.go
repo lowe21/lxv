@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"time"
 
 	"dubbo.apache.org/dubbo-go/v3"
+	"dubbo.apache.org/dubbo-go/v3/client"
 	"dubbo.apache.org/dubbo-go/v3/common"
 	_ "dubbo.apache.org/dubbo-go/v3/imports"
 
@@ -18,30 +20,51 @@ import (
 	_ "github.com/lowe21/lxv/pkg/dubbo/filter"
 )
 
+type (
+	ClientInfo    = client.ClientInfo
+	ClientConn    = client.Connection
+	ClientOptions = client.CallOptions
+	ClientOption  = client.CallOption
+)
+
 func Load() {
 	if err := dubbo.Load(); err != nil {
 		panic(err)
 	}
 }
 
-func SetProvider(service common.RPCService) {
+func SetService(service common.RPCService) {
 	reference := common.GetReference(service)
 	if reference == "" {
-		panic(fmt.Sprintf("%T missing provider reference", service))
+		panic(fmt.Sprintf("%T missing service reference", service))
 	}
 
 	registerPOJO(reference, getPOJOElems(service))
-	dubbo.SetProviderService(service)
+	dubbo.SetProviderServiceWithInfo(service, &common.ServiceInfo{
+		InterfaceName: reference,
+	})
 }
 
-func SetConsumer(service common.RPCService) {
+func SetClient(service common.RPCService, info *ClientInfo) {
 	reference := common.GetReference(service)
 	if reference == "" {
-		panic(fmt.Sprintf("%T missing consumer reference", service))
+		panic(fmt.Sprintf("%T missing client reference", service))
 	}
 
 	registerPOJO(reference, getPOJOElems(service))
-	dubbo.SetConsumerService(service)
+	dubbo.SetConsumerServiceWithInfo(service, info)
+}
+
+func WithRequestTimeout(timeout time.Duration) ClientOption {
+	return func(opts *ClientOptions) {
+		opts.RequestTimeout = timeout.String()
+	}
+}
+
+func WithRetries(retries int) ClientOption {
+	return func(opts *ClientOptions) {
+		opts.Retries = gconv.String(retries)
+	}
 }
 
 func registerPOJO(reference string, elems []reflect.Type) {
