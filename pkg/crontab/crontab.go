@@ -27,19 +27,24 @@ type (
 )
 
 var (
+	started  bool
 	handlers map[string]Handler
 	rwMutex  sync.RWMutex
 	once     sync.Once
 )
 
 func SetHandler(handler Handler) {
+	rwMutex.Lock()
+	defer rwMutex.Unlock()
+
+	if started {
+		panic("cannot set handler after crontab started")
+	}
+
 	name := handler.Name()
 	if name == "" {
 		panic(fmt.Sprintf("%T missing handler name", handler))
 	}
-
-	rwMutex.Lock()
-	defer rwMutex.Unlock()
 
 	if handlers == nil {
 		handlers = map[string]Handler{}
@@ -52,6 +57,11 @@ func SetHandler(handler Handler) {
 
 func Start(ctx context.Context) {
 	once.Do(func() {
+		rwMutex.Lock()
+		defer rwMutex.Unlock()
+
+		started = true
+
 		configs := make([]*Config, 0)
 		if err := g.Config().MustGet(ctx, "crontab").Scan(&configs); err != nil {
 			panic(err)
@@ -89,7 +99,7 @@ func Start(ctx context.Context) {
 				panic(fmt.Sprintf(`crontab "%s" not found`, name))
 			}
 
-			if err := Runner(ctx, name, pattern, handler); err != nil {
+			if err := Runner(context.Background(), name, pattern, handler); err != nil {
 				panic(err)
 			}
 
@@ -109,7 +119,7 @@ func Runner(ctx context.Context, name, pattern string, handler Handler) (err err
 		}()
 
 		if err := handler.Run(ctx); err != nil {
-			g.Log().Infof(ctx, `crontab "%s" error: %v`, name, err)
+			g.Log().Errorf(ctx, `crontab "%s" error: %v`, name, err)
 		} else {
 			g.Log().Infof(ctx, `crontab "%s" executed`, name)
 		}
