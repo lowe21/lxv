@@ -15,10 +15,10 @@ var once sync.Once
 
 func Init() {
 	once.Do(func() {
-		databaseConfig := g.Config().MustGet(nil, "database").Map()
-		redisConfig := g.Config().MustGet(nil, "redis").Map()
-		for name := range databaseConfig {
-			if config, ok := redisConfig[name]; ok {
+		database := g.Config().MustGet(nil, "database").Map()
+		redis := g.Config().MustGet(nil, "redis").Map()
+		for name := range database {
+			if config, ok := redis[name]; ok {
 				if err := gredis.SetConfigByMap(gconv.Map(config), name); err != nil {
 					panic(err)
 				}
