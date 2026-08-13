@@ -22,8 +22,6 @@ func Init() {
 		}
 
 		if g.Config().MustGet(nil, "graylog.address").String() != "" {
-			logCenter := graylog.New()
-
 			g.Log().SetHandlers(func(ctx context.Context, input *glog.HandlerInput) {
 				input.Next(ctx)
 
@@ -51,7 +49,7 @@ func Init() {
 					stack = input.Stack
 				}
 
-				logCenter.Send(ctx, &graylog.Gelf{
+				graylog.Send(ctx, &graylog.Gelf{
 					Host:         g.Server().GetName(),
 					ShortMessage: content,
 					FullMessage:  stack,
