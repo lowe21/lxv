@@ -10,14 +10,14 @@ import (
 const (
 	defaultKey     = "64f17cb03b83fe8dc188865b5a250920"
 	defaultExpires = "30d"
-	defaultRefresh = "60d"
+	defaultLeeway  = "7d"
 )
 
 type Options struct {
 	Issuer  string
 	Key     []byte
 	Expires time.Duration
-	Refresh time.Duration
+	Leeway  time.Duration
 }
 
 func defaultOptions() *Options {
@@ -35,8 +35,8 @@ func defaultOptions() *Options {
 	if options.Expires <= 0 {
 		options.Expires = gconv.Duration(defaultExpires)
 	}
-	if options.Refresh <= 0 {
-		options.Refresh = gconv.Duration(defaultRefresh)
+	if options.Leeway <= 0 {
+		options.Leeway = gconv.Duration(defaultLeeway)
 	}
 
 	return options

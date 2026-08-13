@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"sync"
+	"time"
 )
 
 var (
@@ -19,14 +20,10 @@ func instance() *Jwt {
 	return jwt
 }
 
-func GenerateToken(payload *Payload) (token string, err error) {
-	return instance().GenerateToken(payload)
+func Generate(payload *Payload) (token string, expires time.Time, err error) {
+	return instance().Generate(payload)
 }
 
-func ParseToken(token string) (payload *Payload, err error) {
-	return instance().ParseToken(token)
-}
-
-func ParseRefreshToken(token string) (payload *Payload, err error) {
-	return instance().ParseRefreshToken(token)
+func Parse(token string, leeway bool) (payload *Payload, err error) {
+	return instance().Parse(token, leeway)
 }

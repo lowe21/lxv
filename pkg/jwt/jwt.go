@@ -1,9 +1,10 @@
 package jwt
 
 import (
+	"time"
+
 	jwtv5 "github.com/golang-jwt/jwt/v5"
 
-	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/os/gtime"
 )
 
@@ -11,7 +12,7 @@ type Jwt struct {
 	options *Options
 }
 
-func (j *Jwt) GenerateToken(payload *Payload) (token string, err error) {
+func (j *Jwt) Generate(payload *Payload) (token string, expires time.Time, err error) {
 	now := gtime.Now()
 
 	claims := &Claims{
@@ -23,29 +24,31 @@ func (j *Jwt) GenerateToken(payload *Payload) (token string, err error) {
 		Payload: payload,
 	}
 
-	return jwtv5.NewWithClaims(jwtv5.SigningMethodHS256, claims).SignedString(j.options.Key)
+	token, err = jwtv5.NewWithClaims(jwtv5.SigningMethodHS256, claims).SignedString(j.options.Key)
+	if err != nil {
+		return
+	}
+
+	expires = claims.ExpiresAt.Time
+	return
 }
 
-func (j *Jwt) ParseToken(token string, options ...jwtv5.ParserOption) (payload *Payload, err error) {
+func (j *Jwt) Parse(token string, leeway bool) (payload *Payload, err error) {
 	claims := &Claims{}
+	options := []jwtv5.ParserOption{jwtv5.WithIssuer(j.options.Issuer)}
+	if leeway {
+		options = append(options, jwtv5.WithLeeway(j.options.Leeway))
+	}
 
 	if _, err = jwtv5.ParseWithClaims(token, claims, func(token *jwtv5.Token) (any, error) {
+		if _, ok := token.Method.(*jwtv5.SigningMethodHMAC); !ok {
+			return nil, jwtv5.ErrHashUnavailable
+		}
+
 		return j.options.Key, nil
-	}, append(options, jwtv5.WithIssuer(j.options.Issuer))...); err != nil {
+	}, options...); err != nil {
 		return
 	}
 
 	return claims.Payload, nil
-}
-
-func (j *Jwt) ParseRefreshToken(token string, options ...jwtv5.ParserOption) (payload *Payload, err error) {
-	payload, err = j.ParseToken(token, options...)
-	if err != nil {
-		if gerror.Is(err, jwtv5.ErrTokenExpired) {
-			return j.ParseToken(token, append(options, jwtv5.WithLeeway(j.options.Refresh))...)
-		}
-		return
-	}
-
-	return
 }
