@@ -7,15 +7,17 @@ import (
 	"dubbo.apache.org/dubbo-go/v3/filter"
 	"dubbo.apache.org/dubbo-go/v3/protocol/base"
 	"dubbo.apache.org/dubbo-go/v3/protocol/result"
-	"github.com/apache/dubbo-go-hessian2/java_exception"
 
 	sentinel "github.com/alibaba/sentinel-golang/api"
 	constant "github.com/alibaba/sentinel-golang/core/base"
+
+	"github.com/apache/dubbo-go-hessian2/java_exception"
+
 	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/text/gstr"
 
-	"github.com/lowe21/lxv/util"
+	"github.com/lowe21/lxv/pkg/error_code"
 )
 
 func init() {
@@ -29,7 +31,7 @@ type sentinelFilter struct{}
 func (s *sentinelFilter) Invoke(ctx context.Context, invoker base.Invoker, invocation base.Invocation) (res result.Result) {
 	entry, block := sentinel.Entry(gstr.Join([]string{invoker.GetURL().Service(), invocation.MethodName()}, "."), sentinel.WithResourceType(constant.ResTypeRPC), sentinel.WithTrafficType(constant.Inbound))
 	if block != nil {
-		errorCode := gerror.Code(util.Error(gcode.CodeServerBusy)).(util.ErrorCode)
+		errorCode := gerror.Code(error_code.New(gcode.CodeServerBusy)).(error_code.ErrorCode)
 
 		return &result.RPCResult{
 			Err: java_exception.NewThrowable(

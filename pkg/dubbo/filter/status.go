@@ -14,7 +14,7 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/text/gstr"
 
-	"github.com/lowe21/lxv/util"
+	"github.com/lowe21/lxv/pkg/error_code"
 )
 
 func init() {
@@ -31,7 +31,7 @@ func (s *statusFilter) Invoke(ctx context.Context, invoker base.Invoker, invocat
 
 func (s *statusFilter) OnResponse(_ context.Context, result result.Result, _ base.Invoker, _ base.Invocation) result.Result {
 	if err := result.Error(); err != nil {
-		errorCode := gerror.Code(util.Error(err)).(util.ErrorCode)
+		errorCode := gerror.Code(error_code.New(err)).(error_code.ErrorCode)
 		result.SetError(
 			status.Error(codes.Code(errorCode.Code()), gstr.Join([]string{errorCode.SubCode(), errorCode.Message()}, "@")),
 		)

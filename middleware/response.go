@@ -21,6 +21,7 @@ import (
 	"github.com/gogf/gf/v2/util/gconv"
 
 	"github.com/lowe21/lxv/common"
+	"github.com/lowe21/lxv/pkg/error_code"
 	"github.com/lowe21/lxv/util"
 )
 
@@ -62,27 +63,29 @@ func Response(request *ghttp.Request) {
 		errCode := gerror.Code(err)
 		switch errCode.Code() {
 		case gcode.CodeInternalPanic.Code():
-			err = common.SystemError
+			err = error_code.SystemError
 		case gcode.CodeInternalError.Code():
-			err = common.InternalError
+			err = error_code.InternalError
 		case gcode.CodeDbOperationError.Code():
-			err = common.OperationError
+			err = error_code.OperationError
 		case gcode.CodeValidationFailed.Code():
-			err = util.Error(common.InvalidParam, err.Error())
+			err = error_code.New(error_code.InvalidParam, err.Error())
 		default:
-			if _, ok := errCode.(util.ErrorCode); !ok {
-				if _, ok = errors.AsType[*redsync.ErrNodeTaken](err); ok {
-					err = common.SystemBusy
+			if _, ok := errCode.(error_code.ErrorCode); !ok {
+				if _, ok = errors.AsType[*redsync.ErrTaken](err); ok {
+					err = error_code.SystemBusy
+				} else if _, ok = errors.AsType[*redsync.ErrNodeTaken](err); ok {
+					err = error_code.SystemBusy
 				} else {
 					if lastErr := gerror.Unwrap(err); lastErr != nil {
 						err = lastErr
 					}
-					err = util.Error(errCode, err.Error())
+					err = error_code.New(errCode, err.Error())
 				}
 			}
 		}
 
-		errorCode := gerror.Code(err).(util.ErrorCode)
+		errorCode := gerror.Code(err).(error_code.ErrorCode)
 		subCode = errorCode.SubCode()
 		message = errorCode.Message()
 
@@ -91,7 +94,7 @@ func Response(request *ghttp.Request) {
 		}
 	} else {
 		if request.Response.Status > 0 && request.Response.Status != http.StatusOK {
-			subCode = gerror.Code(common.GatewayError).(util.ErrorCode).SubCode()
+			subCode = gerror.Code(error_code.GatewayError).(error_code.ErrorCode).SubCode()
 			if request.Response.BufferLength() > 0 {
 				message = request.Response.BufferString()
 				request.Response.ClearBuffer()
@@ -121,7 +124,7 @@ func Response(request *ghttp.Request) {
 		g.Log().Error(ctx, err)
 	}
 	if req.AppId != "" {
-		privateKey := g.Config().MustGet(ctx, gstr.Join([]string{"certificate", req.AppId, "privateKey"}, ".")).String()
+		privateKey := g.Config().MustGet(nil, gstr.Join([]string{"certificate", req.AppId, "privateKey"}, ".")).String()
 		sign, err := util.Rsa2Sign(privateKey, ret.Content)
 		if err != nil {
 			g.Log().Error(ctx, err)

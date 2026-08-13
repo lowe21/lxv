@@ -55,7 +55,7 @@ func SetHandler(handler Handler) {
 	handlers[name] = handler
 }
 
-func Start(ctx context.Context) {
+func Start() {
 	once.Do(func() {
 		rwMutex.Lock()
 		defer rwMutex.Unlock()
@@ -63,7 +63,7 @@ func Start(ctx context.Context) {
 		started = true
 
 		configs := make([]*Config, 0)
-		if err := g.Config().MustGet(ctx, "crontab").Scan(&configs); err != nil {
+		if err := g.Config().MustGet(nil, "crontab").Scan(&configs); err != nil {
 			panic(err)
 		}
 

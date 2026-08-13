@@ -10,6 +10,7 @@ import (
 	"github.com/gogf/gf/v2/util/gconv"
 
 	"github.com/lowe21/lxv/common"
+	"github.com/lowe21/lxv/pkg/error_code"
 	"github.com/lowe21/lxv/util"
 )
 
@@ -39,16 +40,13 @@ func Request(request *ghttp.Request) {
 		return
 	}
 
-	ctx := request.GetCtx()
-
 	req := &common.Req{}
-	if err = util.Validator(ctx, req); err != nil {
-		err = util.Error(common.InvalidParam, err.Error())
+	if err = util.Validator(request.GetCtx(), req); err != nil {
+		err = error_code.New(error_code.InvalidParam, err.Error())
 		return
 	}
-
 	if !gjson.Valid(req.Content) {
-		err = common.InvalidParam
+		err = error_code.InvalidParam
 		return
 	}
 
@@ -67,9 +65,9 @@ func Request(request *ghttp.Request) {
 	}
 	reqString := gstr.Join(reqValues, "&")
 
-	publicKey := g.Config().MustGet(ctx, gstr.Join([]string{"certificate", req.AppId, "publicKey"}, ".")).String()
+	publicKey := g.Config().MustGet(nil, gstr.Join([]string{"certificate", req.AppId, "publicKey"}, ".")).String()
 	if util.Rsa2Verify(publicKey, reqString, req.Sign) != nil {
-		err = common.InvalidSign
+		err = error_code.InvalidSign
 		return
 	}
 
@@ -81,6 +79,5 @@ func Request(request *ghttp.Request) {
 			delete(content, key)
 		}
 	}
-
 	request.SetParamMap(content)
 }
