@@ -12,17 +12,13 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/gogf/gf/v2/container/gset"
-	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
-	"github.com/gogf/gf/v2/text/gstr"
-	"github.com/gogf/gf/v2/util/gconv"
 
 	"github.com/lowe21/lxv/common"
 	"github.com/lowe21/lxv/pkg/error_code"
-	"github.com/lowe21/lxv/util"
 )
 
 var streamType = gset.NewFrom([]string{
@@ -31,7 +27,7 @@ var streamType = gset.NewFrom([]string{
 	"multipart/x-mixed-replace",
 })
 
-func Response(request *ghttp.Request) {
+func ApiResponse(request *ghttp.Request) {
 	if request.GetError() == nil {
 		request.Middleware.Next()
 	}
@@ -54,9 +50,7 @@ func Response(request *ghttp.Request) {
 	)
 
 	if err != nil {
-		if request.Response.BufferLength() > 0 {
-			request.Response.ClearBuffer()
-		}
+		request.Response.ClearBuffer()
 
 		g.Log().Error(ctx, err, request.RequestURI, request.GetBodyString())
 
@@ -93,16 +87,14 @@ func Response(request *ghttp.Request) {
 			span.SetStatus(codes.Error, message)
 		}
 	} else {
-		if request.Response.Status > 0 && request.Response.Status != http.StatusOK {
+		if request.Response.Status >= http.StatusBadRequest {
+			request.Response.ClearBuffer()
 			subCode = gerror.Code(error_code.GatewayError).(error_code.ErrorCode).SubCode()
-			if request.Response.BufferLength() > 0 {
-				message = request.Response.BufferString()
-				request.Response.ClearBuffer()
-			} else {
-				message = http.StatusText(request.Response.Status)
-			}
-			message = fmt.Sprintf("HTTP %d %s", request.Response.Status, message)
+			message = fmt.Sprintf("HTTP %d %s", request.Response.Status, http.StatusText(request.Response.Status))
 		} else {
+			if request.Response.Status >= http.StatusMultipleChoices {
+				return
+			}
 			if request.Response.BufferLength() > 0 || request.Response.BytesWritten() > 0 {
 				return
 			}
@@ -111,26 +103,9 @@ func Response(request *ghttp.Request) {
 		}
 	}
 
-	ret := &common.Ret{
-		Content: gjson.New(&common.Res{
-			Code:    subCode,
-			Message: message,
-			Data:    data,
-		}).MustToJsonString(),
-	}
-
-	req := &common.Req{}
-	if err = gconv.Scan(request.GetRequestMap(), req); err != nil {
-		g.Log().Error(ctx, err)
-	}
-	if req.AppId != "" {
-		privateKey := g.Config().MustGet(nil, gstr.Join([]string{"certificate", req.AppId, "privateKey"}, ".")).String()
-		sign, err := util.Rsa2Sign(privateKey, ret.Content)
-		if err != nil {
-			g.Log().Error(ctx, err)
-		}
-		ret.Sign = sign
-	}
-
-	request.Response.WriteJson(ret)
+	request.Response.WriteJson(&common.ApiRes{
+		Code:    subCode,
+		Message: message,
+		Data:    data,
+	})
 }
