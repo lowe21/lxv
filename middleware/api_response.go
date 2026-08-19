@@ -1,18 +1,14 @@
 package middleware
 
 import (
-	"errors"
 	"fmt"
 	"mime"
 	"net/http"
-
-	"github.com/go-redsync/redsync/v4"
 
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/gogf/gf/v2/container/gset"
-	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
@@ -51,37 +47,8 @@ func ApiResponse(request *ghttp.Request) {
 
 	if err != nil {
 		request.Response.ClearBuffer()
-
+		subCode, message = error_code.Parse(err)
 		g.Log().Error(ctx, err, request.RequestURI, request.GetBodyString())
-
-		errCode := gerror.Code(err)
-		switch errCode.Code() {
-		case gcode.CodeInternalPanic.Code():
-			err = error_code.SystemError
-		case gcode.CodeInternalError.Code():
-			err = error_code.InternalError
-		case gcode.CodeDbOperationError.Code():
-			err = error_code.OperationError
-		case gcode.CodeValidationFailed.Code():
-			err = error_code.New(error_code.InvalidParam, err.Error())
-		default:
-			if _, ok := errCode.(error_code.ErrorCode); !ok {
-				if _, ok = errors.AsType[*redsync.ErrTaken](err); ok {
-					err = error_code.SystemBusy
-				} else if _, ok = errors.AsType[*redsync.ErrNodeTaken](err); ok {
-					err = error_code.SystemBusy
-				} else {
-					if lastErr := gerror.Unwrap(err); lastErr != nil {
-						err = lastErr
-					}
-					err = error_code.New(errCode, err.Error())
-				}
-			}
-		}
-
-		errorCode := gerror.Code(err).(error_code.ErrorCode)
-		subCode = errorCode.SubCode()
-		message = errorCode.Message()
 
 		if span := trace.SpanFromContext(ctx); span.IsRecording() {
 			span.SetStatus(codes.Error, message)
