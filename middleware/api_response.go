@@ -9,7 +9,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/gogf/gf/v2/container/gset"
-	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
 
@@ -56,7 +55,7 @@ func ApiResponse(request *ghttp.Request) {
 	} else {
 		if request.Response.Status >= http.StatusBadRequest {
 			request.Response.ClearBuffer()
-			subCode = gerror.Code(error_code.GatewayError).(error_code.ErrorCode).SubCode()
+			subCode, _ = error_code.Parse(error_code.GatewayError)
 			message = fmt.Sprintf("HTTP %d %s", request.Response.Status, http.StatusText(request.Response.Status))
 		} else {
 			if request.Response.Status >= http.StatusMultipleChoices {
