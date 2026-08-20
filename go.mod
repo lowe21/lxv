@@ -12,6 +12,7 @@ require (
 	github.com/gogf/gf/contrib/trace/otlpgrpc/v2 v2.10.2
 	github.com/gogf/gf/v2 v2.10.2
 	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/gorilla/websocket v1.5.3
 	github.com/olekukonko/tablewriter v1.1.4
 	github.com/redis/go-redis/v9 v9.22.0
 	go.mongodb.org/mongo-driver/v2 v2.8.0
@@ -73,7 +74,6 @@ require (
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/pprof v0.0.0-20230207041349-798e818bf904 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grokify/html-strip-tags-go v0.1.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
