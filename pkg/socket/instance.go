@@ -34,13 +34,11 @@ func instance() *Socket {
 						return true
 					}
 
-					parts, err := url.Parse(origin)
-					if err != nil {
-						return false
-					}
-					for _, host := range options.AllowedOrigins {
-						if host == parts.Host {
-							return true
+					if parsed, _ := url.Parse(origin); parsed != nil {
+						for _, host := range options.AllowedOrigins {
+							if host == parsed.Host {
+								return true
+							}
 						}
 					}
 

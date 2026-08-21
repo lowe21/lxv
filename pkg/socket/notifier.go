@@ -34,7 +34,7 @@ func (n *Notifier) Subscribe(ctx context.Context) {
 				select {
 				case <-done:
 				case <-ctx.Done():
-					_ = conn.Close(context.Background())
+					_ = conn.Close(nil)
 				}
 			}()
 
@@ -42,7 +42,7 @@ func (n *Notifier) Subscribe(ctx context.Context) {
 				message, err := conn.ReceiveMessage(ctx)
 				if err != nil {
 					close(done)
-					_ = conn.Close(ctx)
+					_ = conn.Close(nil)
 					break
 				}
 
