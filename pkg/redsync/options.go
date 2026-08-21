@@ -8,17 +8,25 @@ import (
 )
 
 const (
+	defaultRedisGroup     = "default"
+	defaultRedisKeyPrefix = "lock"
 	defaultExpiry         = "10s"
 	defaultTries          = 60
 	defaultRetryDelay     = "1s"
-	defaultExtendDuration = "0"
+	defaultExtendDuration = "0s"
+	defaultLockTimeout    = "3s"
+	defaultUnLockTimeout  = "3s"
 )
 
 type Options struct {
+	RedisGroup     string
+	RedisKeyPrefix string
 	Expiry         time.Duration
 	Tries          int
 	RetryDelay     time.Duration
 	ExtendDuration time.Duration
+	LockTimeout    time.Duration
+	UnLockTimeout  time.Duration
 }
 
 func defaultOptions() *Options {
@@ -27,6 +35,12 @@ func defaultOptions() *Options {
 		panic(err)
 	}
 
+	if options.RedisGroup == "" {
+		options.RedisGroup = defaultRedisGroup
+	}
+	if options.RedisKeyPrefix == "" {
+		options.RedisKeyPrefix = defaultRedisKeyPrefix
+	}
 	if options.Expiry <= 0 {
 		options.Expiry = gconv.Duration(defaultExpiry)
 	}
@@ -38,6 +52,12 @@ func defaultOptions() *Options {
 	}
 	if options.ExtendDuration < 0 {
 		options.ExtendDuration = gconv.Duration(defaultExtendDuration)
+	}
+	if options.LockTimeout <= 0 {
+		options.LockTimeout = gconv.Duration(defaultLockTimeout)
+	}
+	if options.UnLockTimeout <= 0 {
+		options.UnLockTimeout = gconv.Duration(defaultUnLockTimeout)
 	}
 
 	return options
@@ -73,6 +93,22 @@ func WithExtendDuration(extendDuration time.Duration) Option {
 	return func(options *Options) {
 		if extendDuration >= 0 {
 			options.ExtendDuration = extendDuration
+		}
+	}
+}
+
+func WithLockTimeout(lockTimeout time.Duration) Option {
+	return func(options *Options) {
+		if lockTimeout >= 0 {
+			options.LockTimeout = lockTimeout
+		}
+	}
+}
+
+func WithUnLockTimeout(unLockTimeout time.Duration) Option {
+	return func(options *Options) {
+		if unLockTimeout > 0 {
+			options.UnLockTimeout = unLockTimeout
 		}
 	}
 }

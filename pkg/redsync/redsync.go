@@ -2,6 +2,8 @@ package redsync
 
 import (
 	"github.com/go-redsync/redsync/v4"
+
+	"github.com/gogf/gf/v2/text/gstr"
 )
 
 type RedSync struct {
@@ -19,7 +21,7 @@ func (r *RedSync) Mutex(name string, opts ...Option) *RedMutex {
 
 	return &RedMutex{
 		options: &options,
-		mutex: r.sync.NewMutex(name,
+		mutex: r.sync.NewMutex(gstr.Join([]string{options.RedisKeyPrefix, name}, ":"),
 			redsync.WithExpiry(options.Expiry),
 			redsync.WithTries(options.Tries),
 			redsync.WithRetryDelay(options.RetryDelay),
