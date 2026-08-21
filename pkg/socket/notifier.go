@@ -29,9 +29,19 @@ func (n *Notifier) Subscribe(ctx context.Context) {
 		if err != nil {
 			g.Log().Errorf(ctx, "subscribe error: %v", err)
 		} else {
+			done := make(chan struct{})
+			go func() {
+				select {
+				case <-done:
+				case <-ctx.Done():
+					_ = conn.Close(context.Background())
+				}
+			}()
+
 			for {
 				message, err := conn.ReceiveMessage(ctx)
 				if err != nil {
+					close(done)
 					_ = conn.Close(ctx)
 					break
 				}
