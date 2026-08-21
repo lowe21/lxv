@@ -10,7 +10,7 @@ import (
 
 const (
 	defaultRedisGroup         = "default"
-	defaultRedisKeyPrefix     = "ws"
+	defaultRedisKeyPrefix     = "socket"
 	defaultRedisChannel       = "broadcast"
 	defaultNodeTtl            = "60s"
 	defaultNodeHeartbeat      = "20s"
