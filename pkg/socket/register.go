@@ -44,8 +44,8 @@ func (r *Register) Heartbeat(ctx context.Context) {
 			}
 
 			for _, group := range r.socket.connector.GetGroups() {
-				if err := r.socket.connector.RenewClient(ctx, group); err != nil {
-					g.Log().Errorf(ctx, "heartbeat renew client error: %v", err)
+				if err := r.socket.connector.RenewClients(ctx, group); err != nil {
+					g.Log().Errorf(ctx, "heartbeat renew clients error: %v", err)
 				}
 			}
 		case <-ctx.Done():

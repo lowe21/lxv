@@ -64,8 +64,7 @@ func (s *Socket) Connect(request *ghttp.Request, clientId string, group ...strin
 	client.Start()
 
 	if err = s.connector.AddClient(request.GetCtx(), client); err != nil {
-		client.Send(Message(client.id, "error", "connect failed"))
-		client.Close([]byte("system error"))
+		client.Close([]byte("connect failed"))
 	} else {
 		client.Send(Message(client.id, "connect", "connect succeed"))
 	}

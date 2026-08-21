@@ -129,7 +129,7 @@ func (n *Notifier) Notice(ctx context.Context, message []byte, clientIds []strin
 			for remoteNodeId, remoteClientIds := range remoteRoutes {
 				activeClientIds, err := n.socket.connector.GetNodeClientIds(ctx, remoteNodeId, remoteClientIds, group...)
 				if err != nil {
-					g.Log().Errorf(ctx, "get node client error: %v", err)
+					g.Log().Errorf(ctx, "get node clients error: %v", err)
 					activeClientIds = remoteClientIds
 				}
 

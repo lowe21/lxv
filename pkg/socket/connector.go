@@ -105,7 +105,7 @@ func (c *Connector) AddClient(ctx context.Context, client *Client) (err error) {
 	return
 }
 
-func (c *Connector) RenewClient(ctx context.Context, group string) (err error) {
+func (c *Connector) RenewClients(ctx context.Context, group string) (err error) {
 	if _, err = c.socket.redis.Expire(ctx, c.groupNodeKey(c.socket.options.NodeId, group), int64(c.socket.options.NodeTtl.Seconds())); err != nil {
 		return
 	}
