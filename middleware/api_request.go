@@ -15,7 +15,7 @@ import (
 	"github.com/lowe21/lxv/common"
 	"github.com/lowe21/lxv/pkg/error_code"
 	"github.com/lowe21/lxv/pkg/jwt"
-	"github.com/lowe21/lxv/util"
+	"github.com/lowe21/lxv/pkg/validation"
 )
 
 type (
@@ -93,7 +93,7 @@ func ApiRequest(authFunc AuthFunc, idemFunc IdemFunc) ghttp.HandlerFunc {
 		}
 
 		req := &common.ApiReq{}
-		if err = util.Validator(ctx, req); err != nil {
+		if err = validation.Validator(ctx, req); err != nil {
 			err = error_code.New(error_code.InvalidParam, err.Error())
 			return
 		}

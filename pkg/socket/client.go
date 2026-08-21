@@ -10,7 +10,7 @@ import (
 	"github.com/gogf/gf/v2/util/gconv"
 
 	"github.com/lowe21/lxv/pkg/error_code"
-	"github.com/lowe21/lxv/util"
+	"github.com/lowe21/lxv/pkg/validation"
 )
 
 type Client struct {
@@ -126,7 +126,7 @@ func (c *Client) handler() {
 				continue
 			}
 
-			if err := util.Validator(c.ctx, input); err != nil {
+			if err := validation.Validator(c.ctx, input); err != nil {
 				c.Send(Message(input.Id, input.Event, err))
 				continue
 			}
