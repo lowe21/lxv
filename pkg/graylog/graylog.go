@@ -1,16 +1,16 @@
 package graylog
 
 import (
-	"context"
 	"crypto/rand"
 	"log"
 	"math"
+	"time"
 
 	"github.com/gogf/gf/v2/encoding/gcompress"
 	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/net/gudp"
-	"github.com/gogf/gf/v2/os/gtimer"
-	"github.com/gogf/gf/v2/util/gutil"
+
+	"github.com/lowe21/lxv/pkg/error_code"
 )
 
 type Graylog struct {
@@ -18,44 +18,38 @@ type Graylog struct {
 	gelf    chan *Gelf
 }
 
-func (g *Graylog) Send(ctx context.Context, gelf *Gelf) {
-	if err := gutil.Try(ctx, func(_ context.Context) {
-		if gelf != nil {
-			gelf.Version = g.options.Version
-		}
-
-		g.gelf <- gelf
-	}); err != nil {
-		log.Print(err)
+func (g *Graylog) Send(gelf *Gelf) {
+	if gelf != nil {
+		gelf.Version = g.options.Version
 	}
+
+	g.gelf <- gelf
 }
 
 func (g *Graylog) worker() {
-	conn, err := gudp.NewClientConn(g.options.Address)
-	if err != nil {
-		goto ERROR
-	}
-
-	for gelf := range g.gelf {
-		chunks, err := g.compress(gelf)
+	for {
+		conn, err := gudp.NewClientConn(g.options.Address)
 		if err != nil {
-			continue
-		}
-		for _, chunk := range chunks {
-			if conn.Send(chunk) != nil {
-				goto ERROR
+			log.Printf("worker error: %v", err)
+		} else {
+		loop:
+			for gelf := range g.gelf {
+				chunks, err := g.compress(gelf)
+				if err != nil {
+					log.Printf("compress error: %v", err)
+					continue
+				}
+				for _, chunk := range chunks {
+					if conn.Send(chunk) != nil {
+						_ = conn.Close()
+						break loop
+					}
+				}
 			}
 		}
-	}
-ERROR:
-	if conn != nil {
-		_ = conn.Close()
-	}
 
-	log.Printf("graylog connect failed, try to reconnect after %.0f seconds", g.options.ReconnectInterval.Seconds())
-	gtimer.SetTimeout(context.Background(), g.options.ReconnectInterval, func(_ context.Context) {
-		g.worker()
-	})
+		<-time.After(g.options.ReconnectInterval)
+	}
 }
 
 func (g *Graylog) compress(gelf *Gelf) (chunks [][]byte, err error) {
@@ -74,16 +68,22 @@ func (g *Graylog) compress(gelf *Gelf) (chunks [][]byte, err error) {
 			return
 		}
 
+		chunkNumber := int(math.Ceil(float64(dataSize) / float64(g.options.ChunkSize)))
+		if chunkNumber > 128 {
+			err = error_code.New("chunks too large")
+			return
+		}
+
 		currentSize := 0
 		currentNumber := 0
-		chunkNumber := int(math.Ceil(float64(dataSize) / float64(g.options.ChunkSize)))
+
 		for currentSize < dataSize && currentNumber < chunkNumber {
 			nextSize := currentSize + g.options.ChunkSize
 
 			chunk := []byte{0x1e, 0x0f}
 			chunk = append(chunk, id...)
-			chunk = append(chunk, byte(currentNumber%128))
-			chunk = append(chunk, byte(chunkNumber%128))
+			chunk = append(chunk, byte(currentNumber))
+			chunk = append(chunk, byte(chunkNumber))
 			if nextSize < dataSize {
 				chunk = append(chunk, data[currentSize:nextSize]...)
 			} else {

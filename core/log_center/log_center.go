@@ -48,7 +48,7 @@ func Init() {
 					stack = input.Stack
 				}
 
-				graylog.Send(ctx, &graylog.Gelf{
+				graylog.Send(&graylog.Gelf{
 					Host:         g.Server().GetName(),
 					ShortMessage: content,
 					FullMessage:  stack,

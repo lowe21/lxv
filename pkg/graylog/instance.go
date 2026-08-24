@@ -1,11 +1,7 @@
 package graylog
 
 import (
-	"context"
-	"log"
 	"sync"
-
-	"github.com/gogf/gf/v2/os/grpool"
 )
 
 var (
@@ -19,23 +15,17 @@ func instance() *Graylog {
 
 		graylog = &Graylog{
 			options: options,
-			gelf:    make(chan *Gelf, options.WorkerNumber),
+			gelf:    make(chan *Gelf, options.QueueSize),
 		}
 
 		for range options.WorkerNumber {
-			if err := grpool.AddWithRecover(context.Background(), func(_ context.Context) {
-				graylog.worker()
-			}, func(_ context.Context, exception error) {
-				log.Printf("graylog worker exception: %v", exception)
-			}); err != nil {
-				panic(err)
-			}
+			go graylog.worker()
 		}
 	})
 
 	return graylog
 }
 
-func Send(ctx context.Context, gelf *Gelf) {
-	instance().Send(ctx, gelf)
+func Send(gelf *Gelf) {
+	instance().Send(gelf)
 }

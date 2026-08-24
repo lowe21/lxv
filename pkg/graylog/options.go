@@ -10,6 +10,7 @@ import (
 const (
 	defaultAddress           = "127.0.0.1:12201"
 	defaultChunkSize         = 8192
+	defaultQueueSize         = 32
 	defaultWorkerNumber      = 1
 	defaultReconnectInterval = "5s"
 	defaultVersion           = "1.1"
@@ -18,6 +19,7 @@ const (
 type Options struct {
 	Address           string
 	ChunkSize         int
+	QueueSize         int
 	WorkerNumber      int
 	ReconnectInterval time.Duration
 	Version           string
@@ -34,6 +36,9 @@ func defaultOptions() *Options {
 	}
 	if options.ChunkSize <= 0 {
 		options.ChunkSize = defaultChunkSize
+	}
+	if options.QueueSize <= 0 {
+		options.QueueSize = defaultQueueSize
 	}
 	if options.WorkerNumber <= 0 {
 		options.WorkerNumber = defaultWorkerNumber
