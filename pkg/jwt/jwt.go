@@ -4,8 +4,6 @@ import (
 	"time"
 
 	jwtv5 "github.com/golang-jwt/jwt/v5"
-
-	"github.com/gogf/gf/v2/os/gtime"
 )
 
 type Jwt struct {
@@ -13,13 +11,13 @@ type Jwt struct {
 }
 
 func (j *Jwt) Generate(payload *Payload) (token string, expires time.Time, err error) {
-	now := gtime.Now()
+	now := time.Now()
 
 	claims := &Claims{
 		RegisteredClaims: &jwtv5.RegisteredClaims{
 			Issuer:    j.options.Issuer,
-			IssuedAt:  jwtv5.NewNumericDate(now.Time),
-			ExpiresAt: jwtv5.NewNumericDate(now.Add(j.options.Expires).Time),
+			IssuedAt:  jwtv5.NewNumericDate(now),
+			ExpiresAt: jwtv5.NewNumericDate(now.Add(j.options.Expires)),
 		},
 		Payload: payload,
 	}
@@ -30,6 +28,7 @@ func (j *Jwt) Generate(payload *Payload) (token string, expires time.Time, err e
 	}
 
 	expires = claims.ExpiresAt.Time
+
 	return
 }
 

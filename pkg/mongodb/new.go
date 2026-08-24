@@ -5,7 +5,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 
 	"github.com/gogf/gf/v2/container/gmap"
-	"github.com/gogf/gf/v2/util/gconv"
 )
 
 var instances = gmap.NewStrAnyMap(true)
@@ -23,9 +22,9 @@ func New(name ...string) (mongodb *Mongodb) {
 			SetAppName(opts.AppName).
 			SetConnectTimeout(opts.ConnectTimeout).
 			SetMaxConnIdleTime(opts.MaxConnIdleTime).
-			SetMaxPoolSize(gconv.Uint64(opts.MaxPoolSize)).
-			SetMinPoolSize(gconv.Uint64(opts.MinPoolSize)).
-			SetMaxConnecting(gconv.Uint64(opts.MaxConnecting)),
+			SetMaxPoolSize(uint64(opts.MaxPoolSize)).
+			SetMinPoolSize(uint64(opts.MinPoolSize)).
+			SetMaxConnecting(uint64(opts.MaxConnecting)),
 		)
 		if err != nil {
 			panic(err)

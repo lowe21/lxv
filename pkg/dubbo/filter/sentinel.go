@@ -13,8 +13,6 @@ import (
 
 	"github.com/apache/dubbo-go-hessian2/java_exception"
 
-	"github.com/gogf/gf/v2/errors/gcode"
-	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/text/gstr"
 
 	"github.com/lowe21/lxv/pkg/error_code"
@@ -31,11 +29,11 @@ type sentinelFilter struct{}
 func (s *sentinelFilter) Invoke(ctx context.Context, invoker base.Invoker, invocation base.Invocation) (res result.Result) {
 	entry, block := sentinel.Entry(gstr.Join([]string{invoker.GetURL().Service(), invocation.MethodName()}, "."), sentinel.WithResourceType(constant.ResTypeRPC), sentinel.WithTrafficType(constant.Inbound))
 	if block != nil {
-		errorCode := gerror.Code(error_code.New(gcode.CodeServerBusy)).(error_code.ErrorCode)
+		code, message := error_code.Parse(error_code.SystemBusy)
 
 		return &result.RPCResult{
 			Err: java_exception.NewThrowable(
-				gstr.Join([]string{errorCode.SubCode(), errorCode.Message()}, "@"),
+				gstr.Join([]string{code, message}, "@"),
 			),
 		}
 	}

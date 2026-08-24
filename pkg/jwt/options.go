@@ -30,7 +30,7 @@ func defaultOptions() *Options {
 		options.Issuer = g.Server().GetName()
 	}
 	if len(options.Key) == 0 {
-		options.Key = gconv.Bytes(defaultKey)
+		options.Key = []byte(defaultKey)
 	}
 	if options.Expires <= 0 {
 		options.Expires = gconv.Duration(defaultExpires)

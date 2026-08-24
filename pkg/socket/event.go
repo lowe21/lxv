@@ -25,7 +25,6 @@ func GetEvent(name string) (event Event, err error) {
 	event, ok := events[name]
 	if !ok {
 		err = error_code.New(error_code.InvalidEvent, fmt.Sprintf(`event "%s" not found`, name))
-		return
 	}
 
 	return

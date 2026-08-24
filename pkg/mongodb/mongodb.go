@@ -14,11 +14,11 @@ type Mongodb struct {
 	client  *mongo.Client
 }
 
-func (m *Mongodb) ObjectId(hex string) (bson.ObjectID, error) {
+func (m *Mongodb) ObjectId(hex string) (id bson.ObjectID, err error) {
 	return bson.ObjectIDFromHex(hex)
 }
 
-func (m *Mongodb) Count(ctx context.Context, collection string, filter any) (int64, error) {
+func (m *Mongodb) Count(ctx context.Context, collection string, filter any) (count int64, err error) {
 	return m.client.Database(m.options.Database).Collection(collection).CountDocuments(ctx, filter)
 }
 

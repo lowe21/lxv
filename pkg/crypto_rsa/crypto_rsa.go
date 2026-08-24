@@ -14,7 +14,6 @@ import (
 
 	"github.com/gogf/gf/v2/encoding/gbase64"
 	"github.com/gogf/gf/v2/text/gstr"
-	"github.com/gogf/gf/v2/util/gconv"
 
 	"github.com/lowe21/lxv/pkg/error_code"
 )
@@ -137,6 +136,7 @@ func (c *CryptoRsa) parsePrivateKey(privateKey string) (key *rsa.PrivateKey, err
 	}
 
 	key.Precompute()
+
 	return
 }
 
@@ -181,7 +181,7 @@ func (c *CryptoRsa) decodeKey(key string) (der []byte, pemType string, err error
 	}
 
 	if gstr.Contains(key, "-----BEGIN ") {
-		block, _ := pem.Decode(gconv.Bytes(key))
+		block, _ := pem.Decode([]byte(key))
 		if block == nil {
 			err = error_code.New("decode RSA key from PEM format failed")
 			return
@@ -198,9 +198,6 @@ func (c *CryptoRsa) decodeKey(key string) (der []byte, pemType string, err error
 	der, err = gbase64.DecodeString(key)
 	if err != nil {
 		der, err = base64.RawStdEncoding.DecodeString(key)
-		if err != nil {
-			return
-		}
 	}
 
 	return
@@ -219,7 +216,6 @@ func (c *CryptoRsa) parsePKCS8PrivateKey(der []byte) (key *rsa.PrivateKey, err e
 	key, ok := parsed.(*rsa.PrivateKey)
 	if !ok {
 		err = error_code.New("RSA private key is not PKCS#8 format")
-		return
 	}
 
 	return
@@ -238,7 +234,6 @@ func (c *CryptoRsa) parsePKIXPublicKey(der []byte) (key *rsa.PublicKey, err erro
 	key, ok := parsed.(*rsa.PublicKey)
 	if !ok {
 		err = error_code.New("RSA public key is not PKIX format")
-		return
 	}
 
 	return
@@ -253,7 +248,6 @@ func (c *CryptoRsa) parseCertificatePublicKey(der []byte) (key *rsa.PublicKey, e
 	key, ok := parsed.PublicKey.(*rsa.PublicKey)
 	if !ok {
 		err = error_code.New("RSA public key is not certificate format")
-		return
 	}
 
 	return
@@ -324,7 +318,7 @@ func (c *CryptoRsa) digest(hash crypto.Hash, content string) (digest []byte, err
 	}
 
 	h := hash.New()
-	if _, err = h.Write(gconv.Bytes(content)); err != nil {
+	if _, err = h.Write([]byte(content)); err != nil {
 		return
 	}
 

@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"sort"
 
-	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/gogf/gf/v2/util/gconv"
@@ -97,10 +96,6 @@ func ApiRequest(authFunc AuthFunc, idemFunc IdemFunc) ghttp.HandlerFunc {
 			err = error_code.New(error_code.InvalidParam, err.Error())
 			return
 		}
-		if !gjson.Valid(req.Content) {
-			err = error_code.InvalidParam
-			return
-		}
 
 		if sessionKey != "" {
 			reqMap := gconv.MapStrStr(req)
@@ -118,8 +113,8 @@ func ApiRequest(authFunc AuthFunc, idemFunc IdemFunc) ghttp.HandlerFunc {
 			}
 			reqString := gstr.Join(reqValues, "&")
 
-			hash := hmac.New(sha256.New, gconv.Bytes(sessionKey))
-			if _, err = hash.Write(gconv.Bytes(reqString)); err != nil {
+			hash := hmac.New(sha256.New, []byte(sessionKey))
+			if _, err = hash.Write([]byte(reqString)); err != nil {
 				return
 			}
 			sign, _ := hex.DecodeString(req.Sign)

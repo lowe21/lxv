@@ -103,7 +103,7 @@ func registerPOJO(reference string, elems []reflect.Type) {
 			}
 		}
 
-		hessian2.RegisterPOJOMapping(gstr.CaseDelimitedScreaming(gstr.Join([]string{reference, name}, "."), gconv.Byte('.'), false), object)
+		hessian2.RegisterPOJOMapping(gstr.CaseDelimitedScreaming(gstr.Join([]string{reference, name}, "."), byte('.'), false), object)
 	}
 }
 

@@ -10,8 +10,6 @@ import (
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gogf/gf/v2/os/gtime"
-	"github.com/gogf/gf/v2/util/gconv"
 )
 
 type RedMutex struct {
@@ -80,7 +78,6 @@ func (r *RedMutex) Unlock(ctx context.Context) (err error) {
 		} else if _, ok = errors.AsType[*redsync.ErrNodeTaken](err); ok {
 			err = nil
 		}
-		return
 	}
 
 	return
@@ -92,13 +89,13 @@ func (r *RedMutex) extend(ctx context.Context) {
 
 	interval := r.options.Expiry / 3
 	if interval <= 0 {
-		interval = gtime.S
+		interval = time.Second
 	}
 
 	keepCount := 0
 	totalCount := 0
 	if r.options.ExtendDuration > 0 {
-		totalCount = gconv.Int(r.options.ExtendDuration.Seconds() / interval.Seconds())
+		totalCount = int(r.options.ExtendDuration.Seconds() / interval.Seconds())
 		if totalCount <= 0 {
 			totalCount = 1
 		}

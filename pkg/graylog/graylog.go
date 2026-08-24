@@ -10,7 +10,6 @@ import (
 	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/net/gudp"
 	"github.com/gogf/gf/v2/os/gtimer"
-	"github.com/gogf/gf/v2/util/gconv"
 	"github.com/gogf/gf/v2/util/gutil"
 )
 
@@ -77,14 +76,14 @@ func (g *Graylog) compress(gelf *Gelf) (chunks [][]byte, err error) {
 
 		currentSize := 0
 		currentNumber := 0
-		chunkNumber := gconv.Int(math.Ceil(gconv.Float64(dataSize) / gconv.Float64(g.options.ChunkSize)))
+		chunkNumber := int(math.Ceil(float64(dataSize) / float64(g.options.ChunkSize)))
 		for currentSize < dataSize && currentNumber < chunkNumber {
 			nextSize := currentSize + g.options.ChunkSize
 
 			chunk := []byte{0x1e, 0x0f}
 			chunk = append(chunk, id...)
-			chunk = append(chunk, gconv.Byte(currentNumber%128))
-			chunk = append(chunk, gconv.Byte(chunkNumber%128))
+			chunk = append(chunk, byte(currentNumber%128))
+			chunk = append(chunk, byte(chunkNumber%128))
 			if nextSize < dataSize {
 				chunk = append(chunk, data[currentSize:nextSize]...)
 			} else {

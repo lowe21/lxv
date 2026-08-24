@@ -27,15 +27,15 @@ type (
 )
 
 var (
-	started  bool
 	handlers map[string]Handler
-	rwMutex  sync.RWMutex
+	started  bool
+	mutex    sync.RWMutex
 	once     sync.Once
 )
 
 func SetHandler(handler Handler) {
-	rwMutex.Lock()
-	defer rwMutex.Unlock()
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	if started {
 		panic("cannot set handler after crontab started")
@@ -47,7 +47,7 @@ func SetHandler(handler Handler) {
 	}
 
 	if handlers == nil {
-		handlers = map[string]Handler{}
+		handlers = make(map[string]Handler)
 	}
 	if _, ok := handlers[name]; ok {
 		panic(fmt.Sprintf(`%T handler name "%s" already exists`, handler, name))
@@ -57,8 +57,8 @@ func SetHandler(handler Handler) {
 
 func Start() {
 	once.Do(func() {
-		rwMutex.Lock()
-		defer rwMutex.Unlock()
+		mutex.Lock()
+		defer mutex.Unlock()
 
 		started = true
 

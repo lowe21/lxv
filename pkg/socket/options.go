@@ -42,7 +42,7 @@ type Options struct {
 
 func defaultOptions() *Options {
 	options := &Options{}
-	if err := g.Config().MustGet(nil, "websocket").Scan(options); err != nil {
+	if err := g.Config().MustGet(nil, "socket").Scan(options); err != nil {
 		panic(err)
 	}
 

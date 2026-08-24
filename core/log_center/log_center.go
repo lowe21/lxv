@@ -8,7 +8,6 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/glog"
 	"github.com/gogf/gf/v2/text/gstr"
-	"github.com/gogf/gf/v2/util/gconv"
 
 	"github.com/lowe21/lxv/pkg/graylog"
 )
@@ -53,7 +52,7 @@ func Init() {
 					Host:         g.Server().GetName(),
 					ShortMessage: content,
 					FullMessage:  stack,
-					Timestamp:    gconv.Float64(input.Time.UnixMilli()) / 1e3,
+					Timestamp:    float64(input.Time.UnixMilli()) / 1e3,
 					Level:        input.Level,
 					LevelFormat:  input.LevelFormat,
 				})
