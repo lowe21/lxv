@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"dubbo.apache.org/dubbo-go/v3/protocol/dubbo/hessian2"
+	"dubbo.apache.org/dubbo-go/v3/protocol/triple/triple_protocol"
 
 	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/errors/gerror"
@@ -27,6 +28,11 @@ func New(args ...any) error {
 				subCode = gstr.StrTillEx(desc, "@")
 				message = gstr.StrEx(desc, "@")
 				detail = desc
+			} else if err, ok := errors.AsType[*triple_protocol.Error](arg); ok {
+				code = gcode.CodeNil.Code()
+				subCode = gstr.StrTillEx(err.Message(), "@")
+				message = gstr.StrEx(err.Message(), "@")
+				detail = err.Message()
 			} else {
 				switch errorCode := gerror.Code(arg).(type) {
 				case ErrCode:
