@@ -10,7 +10,7 @@ import (
 	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/net/gudp"
 
-	"github.com/lowe21/lxv/pkg/error_code"
+	"github.com/lowe21/lxv/pkg/errcode"
 )
 
 type Graylog struct {
@@ -70,7 +70,7 @@ func (g *Graylog) compress(gelf *Gelf) (chunks [][]byte, err error) {
 
 		chunkNumber := int(math.Ceil(float64(dataSize) / float64(g.options.ChunkSize)))
 		if chunkNumber > 128 {
-			err = error_code.New("chunks too large")
+			err = errcode.New("chunks too large")
 			return
 		}
 

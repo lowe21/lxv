@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/lowe21/lxv/pkg/error_code"
+	"github.com/lowe21/lxv/pkg/errcode"
 )
 
 type Event interface {
@@ -24,7 +24,7 @@ func GetEvent(name string) (event Event, err error) {
 
 	event, ok := events[name]
 	if !ok {
-		err = error_code.New(error_code.InvalidEvent, fmt.Sprintf(`event "%s" not found`, name))
+		err = errcode.New(errcode.InvalidEvent, fmt.Sprintf(`event "%s" not found`, name))
 	}
 
 	return

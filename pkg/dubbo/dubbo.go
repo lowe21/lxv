@@ -36,7 +36,7 @@ func Load() {
 func SetService(service common.RPCService) {
 	reference := common.GetReference(service)
 	if reference == "" {
-		panic(fmt.Sprintf("%T missing service reference", service))
+		panic(fmt.Sprintf("%T reference is empty", service))
 	}
 
 	registerPOJO(reference, getPOJOElems(service))
@@ -48,7 +48,7 @@ func SetService(service common.RPCService) {
 func SetClient(service common.RPCService, info *ClientInfo) {
 	reference := common.GetReference(service)
 	if reference == "" {
-		panic(fmt.Sprintf("%T missing client reference", service))
+		panic(fmt.Sprintf("%T reference is empty", service))
 	}
 
 	registerPOJO(reference, getPOJOElems(service))

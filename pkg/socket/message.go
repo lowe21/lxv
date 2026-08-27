@@ -3,7 +3,7 @@ package socket
 import (
 	"github.com/gogf/gf/v2/encoding/gjson"
 
-	"github.com/lowe21/lxv/pkg/error_code"
+	"github.com/lowe21/lxv/pkg/errcode"
 )
 
 type (
@@ -23,7 +23,7 @@ type (
 
 func Message(id, event string, args ...any) []byte {
 	var (
-		code    string
+		subCode string
 		message string
 		data    any
 	)
@@ -31,7 +31,7 @@ func Message(id, event string, args ...any) []byte {
 	if argsLen := len(args); argsLen > 0 {
 		switch arg := args[0].(type) {
 		case error:
-			code, message = error_code.Parse(arg)
+			subCode, message = errcode.Parse(arg)
 		default:
 			data = arg
 		}
@@ -40,7 +40,7 @@ func Message(id, event string, args ...any) []byte {
 	return gjson.MustEncode(&Output{
 		Id:      id,
 		Event:   event,
-		Code:    code,
+		Code:    subCode,
 		Message: message,
 		Data:    data,
 	})

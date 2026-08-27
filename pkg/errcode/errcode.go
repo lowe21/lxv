@@ -1,8 +1,4 @@
-package error_code
-
-import (
-	"github.com/gogf/gf/v2/errors/gerror"
-)
+package errcode
 
 var (
 	GatewayError   = New("GATEWAY_ERROR", "网关错误")
@@ -20,32 +16,32 @@ var (
 	UnknownError   = New("UNKNOWN_ERROR", "未知错误")
 )
 
-type ErrorCode struct {
+type ErrCode struct {
 	code    int
 	subCode string
 	message string
 	detail  any
 }
 
-func (e ErrorCode) Code() int {
+func (e ErrCode) Code() int {
 	return e.code
 }
 
-func (e ErrorCode) SubCode() string {
+func (e ErrCode) SubCode() string {
 	return e.subCode
 }
 
-func (e ErrorCode) Message() string {
+func (e ErrCode) Message() string {
 	return e.message
 }
 
-func (e ErrorCode) Detail() any {
+func (e ErrCode) Detail() any {
 	return e.detail
 }
 
 func As(err error, target error) bool {
-	errSubCode := gerror.Code(New(err)).(ErrorCode).SubCode()
-	targetSubCode := gerror.Code(New(target)).(ErrorCode).SubCode()
+	errSubCode, _ := Parse(New(err))
+	targetSubCode, _ := Parse(New(target))
 
 	return errSubCode != "" && errSubCode == targetSubCode
 }

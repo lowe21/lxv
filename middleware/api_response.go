@@ -13,7 +13,7 @@ import (
 	"github.com/gogf/gf/v2/net/ghttp"
 
 	"github.com/lowe21/lxv/common"
-	"github.com/lowe21/lxv/pkg/error_code"
+	"github.com/lowe21/lxv/pkg/errcode"
 )
 
 var streamType = gset.NewFrom([]string{
@@ -46,7 +46,7 @@ func ApiResponse(request *ghttp.Request) {
 
 	if err != nil {
 		request.Response.ClearBuffer()
-		subCode, message = error_code.Parse(err)
+		subCode, message = errcode.Parse(err)
 		g.Log().Error(ctx, err, request.RequestURI, request.GetBodyString())
 
 		if span := trace.SpanFromContext(ctx); span.IsRecording() {
@@ -55,7 +55,7 @@ func ApiResponse(request *ghttp.Request) {
 	} else {
 		if request.Response.Status >= http.StatusBadRequest {
 			request.Response.ClearBuffer()
-			subCode, _ = error_code.Parse(error_code.GatewayError)
+			subCode, _ = errcode.Parse(errcode.GatewayError)
 			message = fmt.Sprintf("HTTP %d %s", request.Response.Status, http.StatusText(request.Response.Status))
 		} else {
 			if request.Response.Status >= http.StatusMultipleChoices {

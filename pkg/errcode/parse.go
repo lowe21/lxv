@@ -1,4 +1,4 @@
-package error_code
+package errcode
 
 import (
 	"errors"
@@ -8,14 +8,14 @@ import (
 	"github.com/gogf/gf/v2/errors/gerror"
 )
 
-func Parse(err error) (code, message string) {
+func Parse(err error) (subCode, message string) {
 	if err == nil {
 		err = UnknownError
 	}
 
-	errCode := gerror.Code(err)
-	if _, ok := errCode.(ErrorCode); !ok {
-		switch errCode.Code() {
+	errorCode := gerror.Code(err)
+	if _, ok := errorCode.(ErrCode); !ok {
+		switch errorCode.Code() {
 		case gcode.CodeInternalPanic.Code():
 			err = SystemError
 		case gcode.CodeInternalError.Code():
@@ -38,14 +38,14 @@ func Parse(err error) (code, message string) {
 					}
 					lastErr = nextErr
 				}
-				err = New(errCode, lastErr.Error())
+				err = New(errorCode, lastErr.Error())
 			}
 		}
 	}
 
-	errorCode := gerror.Code(err).(ErrorCode)
-	code = errorCode.SubCode()
-	message = errorCode.Message()
+	errCode := gerror.Code(err).(ErrCode)
+	subCode = errCode.SubCode()
+	message = errCode.Message()
 
 	return
 }

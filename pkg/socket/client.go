@@ -9,7 +9,7 @@ import (
 
 	"github.com/gogf/gf/v2/util/gconv"
 
-	"github.com/lowe21/lxv/pkg/error_code"
+	"github.com/lowe21/lxv/pkg/errcode"
 	"github.com/lowe21/lxv/pkg/validation"
 )
 
@@ -122,7 +122,7 @@ func (c *Client) handler() {
 		case message := <-c.input:
 			input := &Input{}
 			if err := gconv.Scan(message, input); err != nil {
-				c.Send(Message(input.Id, "error", error_code.New(error_code.InvalidParam, "message body should be a json object format")))
+				c.Send(Message(input.Id, "error", errcode.New(errcode.InvalidParam, "message body should be a json object format")))
 				continue
 			}
 

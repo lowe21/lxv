@@ -12,7 +12,7 @@ import (
 	"github.com/gogf/gf/v2/util/gconv"
 
 	"github.com/lowe21/lxv/common"
-	"github.com/lowe21/lxv/pkg/error_code"
+	"github.com/lowe21/lxv/pkg/errcode"
 	"github.com/lowe21/lxv/pkg/jwt"
 	"github.com/lowe21/lxv/pkg/validation"
 )
@@ -50,18 +50,18 @@ func ApiRequest(authFunc AuthFunc, idemFunc IdemFunc) ghttp.HandlerFunc {
 			if handler.GetMetaTag("auth") != "" {
 				authorization := request.Header.Get("Authorization")
 				if authorization == "" {
-					err = error_code.New(error_code.InvalidAuth, "Authorization header is empty")
+					err = errcode.New(errcode.InvalidAuth, "Authorization header is empty")
 					return
 				}
 
 				parts := gstr.Split(authorization, " ")
 				if len(parts) != 2 || parts[0] != "Bearer" {
-					err = error_code.New(error_code.InvalidAuth, "Authorization header is invalid")
+					err = errcode.New(errcode.InvalidAuth, "Authorization header is invalid")
 					return
 				}
 
 				if authFunc == nil {
-					err = error_code.New(error_code.InvalidAuth, "authFunc is nil")
+					err = errcode.New(errcode.InvalidAuth, "authFunc is nil")
 					return
 				}
 
@@ -71,7 +71,7 @@ func ApiRequest(authFunc AuthFunc, idemFunc IdemFunc) ghttp.HandlerFunc {
 					return
 				}
 				if sessionKey == "" {
-					err = error_code.New(error_code.InvalidAuth, "sessionKey is empty")
+					err = errcode.New(errcode.InvalidAuth, "sessionKey is empty")
 					return
 				}
 
@@ -93,7 +93,7 @@ func ApiRequest(authFunc AuthFunc, idemFunc IdemFunc) ghttp.HandlerFunc {
 
 		req := &common.ApiReq{}
 		if err = validation.Validator(ctx, req); err != nil {
-			err = error_code.New(error_code.InvalidParam, err.Error())
+			err = errcode.New(errcode.InvalidParam, err.Error())
 			return
 		}
 
@@ -119,7 +119,7 @@ func ApiRequest(authFunc AuthFunc, idemFunc IdemFunc) ghttp.HandlerFunc {
 			}
 			sign, _ := hex.DecodeString(req.Sign)
 			if !hmac.Equal(hash.Sum(nil), sign) {
-				err = error_code.InvalidSign
+				err = errcode.InvalidSign
 				return
 			}
 		}

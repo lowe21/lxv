@@ -11,10 +11,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/text/gstr"
 
-	"github.com/lowe21/lxv/pkg/error_code"
+	"github.com/lowe21/lxv/pkg/errcode"
 )
 
 func init() {
@@ -31,9 +30,10 @@ func (s *statusFilter) Invoke(ctx context.Context, invoker base.Invoker, invocat
 
 func (s *statusFilter) OnResponse(_ context.Context, result result.Result, _ base.Invoker, _ base.Invocation) result.Result {
 	if err := result.Error(); err != nil {
-		errorCode := gerror.Code(error_code.New(err)).(error_code.ErrorCode)
+		subCode, message := errcode.Parse(errcode.New(err))
+
 		result.SetError(
-			status.Error(codes.Internal, gstr.Join([]string{errorCode.SubCode(), errorCode.Message()}, "@")),
+			status.Error(codes.Internal, gstr.Join([]string{subCode, message}, "@")),
 		)
 	}
 

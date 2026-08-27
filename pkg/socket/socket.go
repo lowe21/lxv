@@ -10,7 +10,7 @@ import (
 	"github.com/gogf/gf/v2/database/gredis"
 	"github.com/gogf/gf/v2/net/ghttp"
 
-	"github.com/lowe21/lxv/pkg/error_code"
+	"github.com/lowe21/lxv/pkg/errcode"
 )
 
 type Socket struct {
@@ -40,7 +40,7 @@ func (s *Socket) Start() {
 
 func (s *Socket) Connect(request *ghttp.Request, clientId string, group ...string) (err error) {
 	if clientId == "" {
-		return error_code.New(error_code.InvalidRequest, "client id is empty")
+		return errcode.New(errcode.InvalidRequest, "client id is empty")
 	}
 
 	conn, err := s.upgrader.Upgrade(request.Response.Writer, request.Request, nil)

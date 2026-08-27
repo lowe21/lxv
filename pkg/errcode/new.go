@@ -1,4 +1,4 @@
-package error_code
+package errcode
 
 import (
 	"errors"
@@ -29,7 +29,7 @@ func New(args ...any) error {
 				detail = desc
 			} else {
 				switch errorCode := gerror.Code(arg).(type) {
-				case ErrorCode:
+				case ErrCode:
 					code = errorCode.Code()
 					subCode = errorCode.SubCode()
 					detail = errorCode.Detail()
@@ -40,7 +40,7 @@ func New(args ...any) error {
 				}
 				message = arg.Error()
 			}
-		case ErrorCode:
+		case ErrCode:
 			code = arg.Code()
 			subCode = arg.SubCode()
 			message = arg.Message()
@@ -82,7 +82,7 @@ func New(args ...any) error {
 		message = gcode.CodeUnknown.Message()
 	}
 
-	return gerror.NewCode(ErrorCode{
+	return gerror.NewCode(ErrCode{
 		code:    code,
 		subCode: gstr.CaseSnakeScreaming(subCode),
 		message: message,

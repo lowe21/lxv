@@ -12,7 +12,7 @@ import (
 	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/gogf/gf/v2/util/gconv"
 
-	"github.com/lowe21/lxv/pkg/error_code"
+	"github.com/lowe21/lxv/pkg/errcode"
 )
 
 type DeliveryHandler func(ctx context.Context, delivery *amqp.Delivery) (err error)
@@ -59,7 +59,7 @@ func (c *Consumer) Listen(ctx context.Context, exchangeType, exchangeName, routi
 
 func (c *Consumer) Consume(ctx context.Context, exchangeName, routingKey string, deliveryHandler DeliveryHandler, opts ...ConsumerOption) (err error) {
 	if deliveryHandler == nil {
-		return error_code.New("deliveryHandler is nil")
+		return errcode.New("deliveryHandler is nil")
 	}
 
 	options := &ConsumerOptions{
@@ -264,7 +264,7 @@ func (c *Consumer) ConsumeDlx(ctx context.Context, exchangeName, routingKey stri
 
 func (c *Consumer) Subscribe(ctx context.Context, exchangeName string, deliveryHandler DeliveryHandler) (err error) {
 	if deliveryHandler == nil {
-		return error_code.New("deliveryHandler is nil")
+		return errcode.New("deliveryHandler is nil")
 	}
 
 	subscribe := func() (err error) {

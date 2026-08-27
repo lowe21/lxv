@@ -15,7 +15,7 @@ import (
 	"github.com/gogf/gf/v2/encoding/gbase64"
 	"github.com/gogf/gf/v2/text/gstr"
 
-	"github.com/lowe21/lxv/pkg/error_code"
+	"github.com/lowe21/lxv/pkg/errcode"
 )
 
 const (
@@ -104,7 +104,7 @@ func (c *CryptoRsa) Verify(publicKey, content, sign string, opts ...Option) (err
 		return
 	}
 	if len(bytes) != key.Size() {
-		return error_code.New("invalid RSA signature length")
+		return errcode.New("invalid RSA signature length")
 	}
 
 	if pss {
@@ -129,7 +129,7 @@ func (c *CryptoRsa) parsePrivateKey(privateKey string) (key *rsa.PrivateKey, err
 	case "PRIVATE KEY":
 		key, err = c.parsePKCS8PrivateKey(der)
 	case "ENCRYPTED PRIVATE KEY", "RSA PRIVATE KEY, ENCRYPTED":
-		err = error_code.New("RSA private key format is not supported")
+		err = errcode.New("RSA private key format is not supported")
 		return
 	default:
 		key, err = c.parsePKCS1PrivateKey(der)
@@ -186,18 +186,18 @@ func (c *CryptoRsa) parsePublicKey(publicKey string) (key *rsa.PublicKey, err er
 func (c *CryptoRsa) decodeKey(key string) (der []byte, pemType string, err error) {
 	key = gstr.Trim(key)
 	if key == "" {
-		err = error_code.New("RSA key is empty")
+		err = errcode.New("RSA key is empty")
 		return
 	}
 
 	if gstr.Contains(key, "-----BEGIN ") {
 		block, _ := pem.Decode([]byte(key))
 		if block == nil {
-			err = error_code.New("decode RSA key from PEM format failed")
+			err = errcode.New("decode RSA key from PEM format failed")
 			return
 		}
 		if block.Headers["Proc-Type"] == "4,ENCRYPTED" {
-			err = error_code.New("RSA key format is not supported")
+			err = errcode.New("RSA key format is not supported")
 			return
 		}
 
@@ -225,7 +225,7 @@ func (c *CryptoRsa) parsePKCS8PrivateKey(der []byte) (key *rsa.PrivateKey, err e
 
 	key, ok := parsed.(*rsa.PrivateKey)
 	if !ok {
-		err = error_code.New("RSA private key is not PKCS#8 format")
+		err = errcode.New("RSA private key is not PKCS#8 format")
 	}
 
 	return
@@ -243,7 +243,7 @@ func (c *CryptoRsa) parsePKIXPublicKey(der []byte) (key *rsa.PublicKey, err erro
 
 	key, ok := parsed.(*rsa.PublicKey)
 	if !ok {
-		err = error_code.New("RSA public key is not PKIX format")
+		err = errcode.New("RSA public key is not PKIX format")
 	}
 
 	return
@@ -257,7 +257,7 @@ func (c *CryptoRsa) parseCertificatePublicKey(der []byte) (key *rsa.PublicKey, e
 
 	key, ok := parsed.PublicKey.(*rsa.PublicKey)
 	if !ok {
-		err = error_code.New("RSA public key is not certificate format")
+		err = errcode.New("RSA public key is not certificate format")
 	}
 
 	return
@@ -265,7 +265,7 @@ func (c *CryptoRsa) parseCertificatePublicKey(der []byte) (key *rsa.PublicKey, e
 
 func (c *CryptoRsa) verifyPrivateKey(key *rsa.PrivateKey) (err error) {
 	if key == nil {
-		return error_code.New("RSA private key is nil")
+		return errcode.New("RSA private key is nil")
 	}
 
 	if err = key.Validate(); err != nil {
@@ -273,11 +273,11 @@ func (c *CryptoRsa) verifyPrivateKey(key *rsa.PrivateKey) (err error) {
 	}
 
 	if c.options.MinKeyBits > 0 && key.N.BitLen() < c.options.MinKeyBits {
-		return error_code.New(fmt.Errorf("RSA private key minimum bits is %d", c.options.MinKeyBits))
+		return errcode.New(fmt.Errorf("RSA private key minimum bits is %d", c.options.MinKeyBits))
 	}
 
 	if key.E < 3 || key.E%2 == 0 {
-		return error_code.New("invalid RSA private key exponent")
+		return errcode.New("invalid RSA private key exponent")
 	}
 
 	return
@@ -285,15 +285,15 @@ func (c *CryptoRsa) verifyPrivateKey(key *rsa.PrivateKey) (err error) {
 
 func (c *CryptoRsa) verifyPublicKey(key *rsa.PublicKey) (err error) {
 	if key == nil {
-		return error_code.New("RSA public key is nil")
+		return errcode.New("RSA public key is nil")
 	}
 
 	if c.options.MinKeyBits > 0 && key.N.BitLen() < c.options.MinKeyBits {
-		return error_code.New(fmt.Errorf("RSA public key minimum bits is %d", c.options.MinKeyBits))
+		return errcode.New(fmt.Errorf("RSA public key minimum bits is %d", c.options.MinKeyBits))
 	}
 
 	if key.E < 3 || key.E%2 == 0 {
-		return error_code.New("invalid RSA public key exponent")
+		return errcode.New("invalid RSA public key exponent")
 	}
 
 	return
@@ -316,14 +316,14 @@ func (c *CryptoRsa) hash(options *Options) (hash crypto.Hash, pss bool, err erro
 	case PssSha512:
 		return crypto.SHA512, true, nil
 	default:
-		err = error_code.New("invalid RSA hash algorithm")
+		err = errcode.New("invalid RSA hash algorithm")
 		return
 	}
 }
 
 func (c *CryptoRsa) digest(hash crypto.Hash, content string) (digest []byte, err error) {
 	if !hash.Available() {
-		err = error_code.New(fmt.Sprintf(`RSA hash algorithm "%v" is unavailable`, hash))
+		err = errcode.New(fmt.Sprintf(`RSA hash algorithm "%v" is unavailable`, hash))
 		return
 	}
 
