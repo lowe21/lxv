@@ -8,25 +8,25 @@ import (
 )
 
 const (
-	defaultRedisGroup     = "default"
-	defaultRedisKeyPrefix = "lock"
-	defaultExpiry         = "10s"
-	defaultTries          = 60
-	defaultRetryDelay     = "1s"
-	defaultExtendDuration = "0s"
-	defaultLockTimeout    = "3s"
-	defaultUnLockTimeout  = "3s"
+	defaultRedisGroup        = "default"
+	defaultRedisKeyPrefix    = "lock"
+	defaultExpiry            = "10s"
+	defaultTries             = 60
+	defaultRetryDelay        = "1s"
+	defaultExtendMaxDuration = "0"
+	defaultLockTimeout       = "3s"
+	defaultUnlockTimeout     = "3s"
 )
 
 type Options struct {
-	RedisGroup     string
-	RedisKeyPrefix string
-	Expiry         time.Duration
-	Tries          int
-	RetryDelay     time.Duration
-	ExtendDuration time.Duration
-	LockTimeout    time.Duration
-	UnLockTimeout  time.Duration
+	RedisGroup        string
+	RedisKeyPrefix    string
+	Expiry            time.Duration
+	Tries             int
+	RetryDelay        time.Duration
+	ExtendMaxDuration time.Duration
+	LockTimeout       time.Duration
+	UnlockTimeout     time.Duration
 }
 
 func defaultOptions() *Options {
@@ -50,14 +50,14 @@ func defaultOptions() *Options {
 	if options.RetryDelay <= 0 {
 		options.RetryDelay = gconv.Duration(defaultRetryDelay)
 	}
-	if options.ExtendDuration < 0 {
-		options.ExtendDuration = gconv.Duration(defaultExtendDuration)
+	if options.ExtendMaxDuration < 0 {
+		options.ExtendMaxDuration = gconv.Duration(defaultExtendMaxDuration)
 	}
 	if options.LockTimeout <= 0 {
 		options.LockTimeout = gconv.Duration(defaultLockTimeout)
 	}
-	if options.UnLockTimeout <= 0 {
-		options.UnLockTimeout = gconv.Duration(defaultUnLockTimeout)
+	if options.UnlockTimeout <= 0 {
+		options.UnlockTimeout = gconv.Duration(defaultUnlockTimeout)
 	}
 
 	return options
@@ -89,10 +89,10 @@ func WithRetryDelay(retryDelay time.Duration) Option {
 	}
 }
 
-func WithExtendDuration(extendDuration time.Duration) Option {
+func WithExtendMaxDuration(extendMaxDuration time.Duration) Option {
 	return func(options *Options) {
-		if extendDuration >= 0 {
-			options.ExtendDuration = extendDuration
+		if extendMaxDuration >= 0 {
+			options.ExtendMaxDuration = extendMaxDuration
 		}
 	}
 }
@@ -105,10 +105,10 @@ func WithLockTimeout(lockTimeout time.Duration) Option {
 	}
 }
 
-func WithUnLockTimeout(unLockTimeout time.Duration) Option {
+func WithUnlockTimeout(unlockTimeout time.Duration) Option {
 	return func(options *Options) {
-		if unLockTimeout > 0 {
-			options.UnLockTimeout = unLockTimeout
+		if unlockTimeout > 0 {
+			options.UnlockTimeout = unlockTimeout
 		}
 	}
 }

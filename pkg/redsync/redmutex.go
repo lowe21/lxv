@@ -25,13 +25,13 @@ func (r *RedMutex) Lock(ctx context.Context) (err error) {
 	}
 
 	var (
-		lockCtx = ctx
-		cancel  context.CancelFunc
+		lockCtx    = ctx
+		lockCancel context.CancelFunc
 	)
 
 	if r.options.LockTimeout > 0 {
-		lockCtx, cancel = context.WithTimeout(ctx, r.options.LockTimeout)
-		defer cancel()
+		lockCtx, lockCancel = context.WithTimeout(ctx, r.options.LockTimeout)
+		defer lockCancel()
 	}
 
 	if err = r.mutex.LockContext(lockCtx); err != nil {
@@ -64,13 +64,13 @@ func (r *RedMutex) Unlock(ctx context.Context) (err error) {
 		r.cancel()
 	}
 
-	unLockCtx, cancel := context.WithTimeout(ctx, r.options.UnLockTimeout)
+	unlockCtx, unlockCancel := context.WithTimeout(ctx, r.options.UnlockTimeout)
 	defer func() {
 		r.locked.Store(false)
-		cancel()
+		unlockCancel()
 	}()
 
-	if _, err = r.mutex.UnlockContext(unLockCtx); err != nil {
+	if _, err = r.mutex.UnlockContext(unlockCtx); err != nil {
 		if gerror.Is(err, redsync.ErrLockAlreadyExpired) {
 			err = nil
 		} else if _, ok := errors.AsType[*redsync.ErrTaken](err); ok {
@@ -84,20 +84,20 @@ func (r *RedMutex) Unlock(ctx context.Context) (err error) {
 }
 
 func (r *RedMutex) extend(ctx context.Context) {
-	extendCtx, cancel := context.WithCancel(ctx)
-	r.cancel = cancel
+	extendCtx, extendCancel := context.WithCancel(ctx)
+	r.cancel = extendCancel
 
 	interval := r.options.Expiry / 3
 	if interval <= 0 {
 		interval = time.Second
 	}
 
-	keepCount := 0
-	totalCount := 0
-	if r.options.ExtendDuration > 0 {
-		totalCount = int(r.options.ExtendDuration.Seconds() / interval.Seconds())
-		if totalCount <= 0 {
-			totalCount = 1
+	extendCount := 0
+	extendMax := 0
+	if r.options.ExtendMaxDuration > 0 {
+		extendMax = int(r.options.ExtendMaxDuration.Seconds() / interval.Seconds())
+		if extendMax <= 0 {
+			extendMax = 1
 		}
 	}
 
@@ -108,7 +108,7 @@ func (r *RedMutex) extend(ctx context.Context) {
 		for {
 			select {
 			case <-ticker.C:
-				if totalCount > 0 && keepCount >= totalCount {
+				if extendMax > 0 && extendCount >= extendMax {
 					return
 				}
 				if _, err := r.mutex.ExtendContext(ctx); err != nil {
@@ -117,7 +117,7 @@ func (r *RedMutex) extend(ctx context.Context) {
 					}
 					g.Log().Error(ctx, err)
 				}
-				keepCount++
+				extendCount++
 			case <-extendCtx.Done():
 				return
 			}
