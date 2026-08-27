@@ -25,6 +25,7 @@ func (m *Mongodb) Count(ctx context.Context, collection string, filter any) (cou
 func (m *Mongodb) Find(ctx context.Context, collection string, filter, pointer any) (err error) {
 	if err = m.client.Database(m.options.Database).Collection(collection).FindOne(ctx, filter).Decode(pointer); err != nil {
 		if gerror.Is(err, mongo.ErrNoDocuments) {
+			pointer = nil
 			err = nil
 		}
 	}
@@ -38,13 +39,7 @@ func (m *Mongodb) Insert(ctx context.Context, collection string, document any) (
 		return
 	}
 
-	if objectID, ok := result.InsertedID.(bson.ObjectID); ok {
-		id = objectID.Hex()
-	} else {
-		id = result.InsertedID
-	}
-
-	return
+	return result.InsertedID, nil
 }
 
 func (m *Mongodb) Update(ctx context.Context, collection string, filter, document any) (affected int64, err error) {

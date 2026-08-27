@@ -11,13 +11,12 @@ import (
 
 const (
 	defaultGroup           = "default"
-	defaultUri             = "mongodb://root:root@127.0.0.1:27017"
-	defaultDatabase        = ""
+	defaultUri             = ""
 	defaultConnectTimeout  = "3s"
-	defaultMaxConnIdleTime = "1h"
-	defaultMaxPoolSize     = 10
+	defaultMaxConnIdleTime = "0"
+	defaultMaxPoolSize     = 0
 	defaultMinPoolSize     = 0
-	defaultMaxConnecting   = 2
+	defaultMaxConnecting   = 0
 )
 
 type Options struct {
@@ -49,9 +48,9 @@ func defaultOptions(group string) *Options {
 		options.AppName = g.Server().GetName()
 	}
 	if options.Database == "" {
-		options.Database = defaultDatabase
+		panic("database is empty")
 	}
-	if options.ConnectTimeout < 0 {
+	if options.ConnectTimeout <= 0 {
 		options.ConnectTimeout = gconv.Duration(defaultConnectTimeout)
 	}
 	if options.MaxConnIdleTime < 0 {
