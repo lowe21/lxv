@@ -33,7 +33,7 @@ func (s *statusFilter) OnResponse(_ context.Context, result result.Result, _ bas
 	if err := result.Error(); err != nil {
 		errorCode := gerror.Code(error_code.New(err)).(error_code.ErrorCode)
 		result.SetError(
-			status.Error(codes.Code(errorCode.Code()), gstr.Join([]string{errorCode.SubCode(), errorCode.Message()}, "@")),
+			status.Error(codes.Internal, gstr.Join([]string{errorCode.SubCode(), errorCode.Message()}, "@")),
 		)
 	}
 
