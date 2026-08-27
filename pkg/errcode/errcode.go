@@ -38,10 +38,3 @@ func (e ErrCode) Message() string {
 func (e ErrCode) Detail() any {
 	return e.detail
 }
-
-func As(err error, target error) bool {
-	errSubCode, _ := Parse(New(err))
-	targetSubCode, _ := Parse(New(target))
-
-	return errSubCode != "" && errSubCode == targetSubCode
-}
