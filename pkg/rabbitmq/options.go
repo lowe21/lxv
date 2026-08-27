@@ -15,7 +15,7 @@ const (
 	defaultHeartbeat         = "30s"
 	defaultReconnectMax      = 10
 	defaultReconnectInterval = "5s"
-	defaultRetryMax          = 1
+	defaultRetryMax          = 0
 	defaultRetryFactor       = 2
 	defaultRetryIntervalMin  = "3s"
 	defaultRetryIntervalMax  = "30s"
@@ -66,7 +66,7 @@ func defaultOptions() *Options {
 	if options.Heartbeat <= 0 {
 		options.Heartbeat = gconv.Duration(defaultHeartbeat)
 	}
-	if options.ReconnectMax < 0 {
+	if options.ReconnectMax <= 0 {
 		options.ReconnectMax = defaultReconnectMax
 	}
 	if options.ReconnectInterval <= 0 {
