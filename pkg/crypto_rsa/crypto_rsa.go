@@ -18,6 +18,16 @@ import (
 	"github.com/lowe21/lxv/pkg/error_code"
 )
 
+const (
+	Sha1      = "sha1"
+	Sha256    = "sha256"
+	Sha384    = "sha384"
+	Sha512    = "sha512"
+	PssSha256 = "pss-sha256"
+	PssSha384 = "pss-sha384"
+	PssSha512 = "pss-sha512"
+)
+
 type CryptoRsa struct {
 	options *Options
 }

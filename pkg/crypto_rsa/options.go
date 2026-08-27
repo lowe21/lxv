@@ -5,16 +5,6 @@ import (
 )
 
 const (
-	Sha1      = "sha1"
-	Sha256    = "sha256"
-	Sha384    = "sha384"
-	Sha512    = "sha512"
-	PssSha256 = "pss-sha256"
-	PssSha384 = "pss-sha384"
-	PssSha512 = "pss-sha512"
-)
-
-const (
 	defaultHash       = Sha256
 	defaultMinKeyBits = 2048
 )
@@ -33,7 +23,7 @@ func defaultOptions() *Options {
 	if options.Hash == "" {
 		options.Hash = defaultHash
 	}
-	if options.MinKeyBits <= defaultMinKeyBits {
+	if options.MinKeyBits <= 0 {
 		options.MinKeyBits = defaultMinKeyBits
 	}
 
