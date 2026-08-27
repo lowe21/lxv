@@ -35,7 +35,7 @@ type Options struct {
 	InputQueueSize     int
 	OutputQueueSize    int
 	MessageMaxSize     int64
-	PingIntervalTime   time.Duration
+	PingInterval       time.Duration
 	PongTimeout        time.Duration
 	WriteTimeout       time.Duration
 }
@@ -79,14 +79,14 @@ func defaultOptions() *Options {
 	if options.MessageMaxSize <= 0 {
 		options.MessageMaxSize = defaultMessageMaxSize
 	}
-	if options.PingIntervalTime <= 0 {
-		options.PingIntervalTime = gconv.Duration(defaultPingInterval)
+	if options.PingInterval <= 0 {
+		options.PingInterval = gconv.Duration(defaultPingInterval)
 	}
 	if options.PongTimeout <= 0 {
 		options.PongTimeout = gconv.Duration(defaultPongTimeout)
 	}
-	if options.PongTimeout < options.PingIntervalTime {
-		panic("pongTimeout must be greater than or equal to pingIntervalTime")
+	if options.PongTimeout < options.PingInterval {
+		panic("pongTimeout must be greater than or equal to pingInterval")
 	}
 	if options.WriteTimeout <= 0 {
 		options.WriteTimeout = gconv.Duration(defaultWriteTimeout)

@@ -2,27 +2,27 @@ package socket
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/gorilla/websocket"
 
 	"github.com/gogf/gf/v2/database/gredis"
-	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
 
 	"github.com/lowe21/lxv/pkg/error_code"
 )
 
 type Socket struct {
-	options   *Options
-	upgrader  websocket.Upgrader
-	redis     *gredis.Redis
-	register  *Register
-	connector *Connector
-	notifier  *Notifier
-	ctx       context.Context
-	cancel    context.CancelFunc
-	once      sync.Once
+	options     *Options
+	upgrader    websocket.Upgrader
+	redis       *gredis.Redis
+	register    *Register
+	connector   *Connector
+	broadcaster *Broadcaster
+	ctx         context.Context
+	cancel      context.CancelFunc
+	once        sync.Once
 }
 
 func (s *Socket) Start() {
@@ -30,11 +30,11 @@ func (s *Socket) Start() {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 
 		if err := s.register.AddNode(s.ctx); err != nil {
-			g.Log().Errorf(s.ctx, "register node error: %v", err)
+			panic(fmt.Sprintf("register node error: %v", err))
 		}
 
 		go s.register.Heartbeat(s.ctx)
-		go s.notifier.Subscribe(s.ctx)
+		go s.broadcaster.Subscribe(s.ctx)
 	})
 }
 
@@ -48,22 +48,21 @@ func (s *Socket) Connect(request *ghttp.Request, clientId string, group ...strin
 		return
 	}
 
-	ctx, cancel := context.WithCancel(context.WithoutCancel(request.GetCtx()))
+	ctx := request.GetCtx()
 
 	client := &Client{
-		socket: s,
+		Socket: s,
 		conn:   conn,
 		id:     clientId,
 		group:  s.connector.groupName(group...),
 		input:  make(chan []byte, s.options.InputQueueSize),
 		output: make(chan []byte, s.options.OutputQueueSize),
 		done:   make(chan struct{}),
-		ctx:    ctx,
-		cancel: cancel,
 	}
+	client.ctx, client.cancel = context.WithCancel(context.WithoutCancel(ctx))
 	client.Start()
 
-	if err = s.connector.AddClient(request.GetCtx(), client); err != nil {
+	if err = s.connector.AddClient(ctx, client); err != nil {
 		client.Close([]byte("connect failed"))
 	} else {
 		client.Send(Message(client.id, "connect", "connect succeed"))

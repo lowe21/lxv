@@ -16,6 +16,7 @@ redis.call('HSET', KEYS[2], ARGV[1], 1)
 redis.call('EXPIRE', KEYS[2], ARGV[3])
 return nodeId
 `
+
 	deleteClientScript = `
 local deleted = 0
 if redis.call('HGET', KEYS[1], ARGV[1]) == ARGV[2] then
@@ -25,6 +26,7 @@ end
 redis.call('HDEL', KEYS[2], ARGV[1])
 return deleted
 `
+
 	deleteNodeClientScript = `
 local deleted = 0
 for i = 1, #ARGV, 2 do
@@ -41,7 +43,7 @@ return deleted
 )
 
 type Connector struct {
-	socket  *Socket
+	*Socket
 	clients map[string]map[string]*Client
 	mutex   sync.RWMutex
 }
@@ -67,22 +69,22 @@ func (c *Connector) GetClients(group ...string) (clients map[string]*Client) {
 }
 
 func (c *Connector) AddClient(ctx context.Context, client *Client) (err error) {
-	data, err := c.socket.redis.Eval(ctx, addClientScript, 2, []string{
+	data, err := c.redis.Eval(ctx, addClientScript, 2, []string{
 		c.groupKey(client.group),
-		c.groupNodeKey(c.socket.options.NodeId, client.group),
+		c.groupNodeKey(c.options.NodeId, client.group),
 	}, []any{
 		client.id,
-		c.socket.options.NodeId,
-		int64(c.socket.options.NodeTtl.Seconds()),
+		c.options.NodeId,
+		int64(c.options.NodeTtl.Seconds()),
 	})
 	if err != nil {
 		return
 	}
 
 	nodeId := data.String()
-	if nodeId != "" && nodeId != c.socket.options.NodeId {
-		if err := c.socket.notifier.CloseClient(ctx, []byte("already connected elsewhere"), nodeId, []string{client.id}, client.group); err != nil {
-			g.Log().Errorf(ctx, "close node client error: %v", err)
+	if nodeId != "" && nodeId != c.options.NodeId {
+		if err := c.broadcaster.CloseClient(ctx, []byte("already connected elsewhere"), nodeId, []string{client.id}, client.group); err != nil {
+			g.Log().Errorf(ctx, "close client error: %v", err)
 		}
 	}
 
@@ -106,7 +108,7 @@ func (c *Connector) AddClient(ctx context.Context, client *Client) (err error) {
 }
 
 func (c *Connector) RenewClients(ctx context.Context, group string) (err error) {
-	if _, err = c.socket.redis.Expire(ctx, c.groupNodeKey(c.socket.options.NodeId, group), int64(c.socket.options.NodeTtl.Seconds())); err != nil {
+	if _, err = c.redis.Expire(ctx, c.groupNodeKey(c.options.NodeId, group), int64(c.options.NodeTtl.Seconds())); err != nil {
 		return
 	}
 
@@ -115,25 +117,25 @@ func (c *Connector) RenewClients(ctx context.Context, group string) (err error) 
 
 func (c *Connector) DeleteClient(client *Client) (err error) {
 	c.mutex.Lock()
-	deleted := false
+	isDeleted := false
 	if clients := c.clients[client.group]; clients != nil {
 		if clients[client.id] == client {
 			delete(clients, client.id)
 			if len(clients) == 0 {
 				delete(c.clients, client.group)
 			}
-			deleted = true
+			isDeleted = true
 		}
 	}
 	c.mutex.Unlock()
 
-	if deleted {
-		if _, err = c.socket.redis.Eval(context.Background(), deleteClientScript, 2, []string{
+	if isDeleted {
+		if _, err = c.redis.Eval(context.Background(), deleteClientScript, 2, []string{
 			c.groupKey(client.group),
-			c.groupNodeKey(c.socket.options.NodeId, client.group),
+			c.groupNodeKey(c.options.NodeId, client.group),
 		}, []any{
 			client.id,
-			c.socket.options.NodeId,
+			c.options.NodeId,
 		}); err != nil {
 			return
 		}
@@ -155,7 +157,7 @@ func (c *Connector) GetGroups() (groups []string) {
 }
 
 func (c *Connector) GetNodeIds(ctx context.Context, clientIds []string, group ...string) (nodeIds []string, err error) {
-	data, err := c.socket.redis.HMGet(ctx, c.groupKey(group...), clientIds...)
+	data, err := c.redis.HMGet(ctx, c.groupKey(group...), clientIds...)
 	if err != nil {
 		return
 	}
@@ -163,8 +165,8 @@ func (c *Connector) GetNodeIds(ctx context.Context, clientIds []string, group ..
 	return data.Strings(), nil
 }
 
-func (c *Connector) GetNodeClientIds(ctx context.Context, nodeId string, clientIds []string, group ...string) (activeClientIds []string, err error) {
-	data, err := c.socket.redis.HMGet(ctx, c.groupNodeKey(nodeId, group...), clientIds...)
+func (c *Connector) GetNodeActiveClientIds(ctx context.Context, nodeId string, clientIds []string, group ...string) (activeClientIds []string, err error) {
+	data, err := c.redis.HMGet(ctx, c.groupNodeKey(nodeId, group...), clientIds...)
 	if err != nil {
 		return
 	}
@@ -187,7 +189,7 @@ func (c *Connector) DeleteNodeClients(ctx context.Context, nodeId string, client
 		args = append(args, clientId, nodeId)
 	}
 
-	if _, err = c.socket.redis.Eval(ctx, deleteNodeClientScript, 2, []string{
+	if _, err = c.redis.Eval(ctx, deleteNodeClientScript, 2, []string{
 		c.groupKey(group...),
 		c.groupNodeKey(nodeId, group...),
 	}, args); err != nil {
@@ -198,7 +200,7 @@ func (c *Connector) DeleteNodeClients(ctx context.Context, nodeId string, client
 }
 
 func (c *Connector) groupName(group ...string) (name string) {
-	name = c.socket.options.ClientDefaultGroup
+	name = c.options.ClientDefaultGroup
 	if len(group) > 0 && group[0] != "" {
 		name = group[0]
 	}
@@ -207,9 +209,9 @@ func (c *Connector) groupName(group ...string) (name string) {
 }
 
 func (c *Connector) groupKey(group ...string) (key string) {
-	return gstr.Join([]string{c.socket.options.RedisKeyPrefix, "client", c.groupName(group...)}, ":")
+	return gstr.Join([]string{c.options.RedisKeyPrefix, "client", c.groupName(group...)}, ":")
 }
 
 func (c *Connector) groupNodeKey(nodeId string, group ...string) (key string) {
-	return gstr.Join([]string{c.socket.options.RedisKeyPrefix, "client", c.groupName(group...), "node", nodeId}, ":")
+	return gstr.Join([]string{c.options.RedisKeyPrefix, "client", c.groupName(group...), "node", nodeId}, ":")
 }

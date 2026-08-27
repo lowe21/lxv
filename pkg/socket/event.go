@@ -36,14 +36,14 @@ func SetEvent(event Event) {
 
 	name := event.Name()
 	if name == "" {
-		panic(fmt.Sprintf("%T missing event name", event))
+		panic(fmt.Sprintf("%T name is empty", event))
 	}
 
 	if events == nil {
 		events = make(map[string]Event)
 	}
 	if _, ok := events[name]; ok {
-		panic(fmt.Sprintf(`%T event name "%s" already exists`, event, name))
+		panic(fmt.Sprintf(`%T name "%s" already exists`, event, name))
 	}
 	events[name] = event
 }

@@ -9,42 +9,22 @@ import (
 )
 
 type Register struct {
-	socket *Socket
-}
-
-func (r *Register) AddNode(ctx context.Context) (err error) {
-	return r.socket.redis.SetEX(ctx, r.nodeKey(), r.socket.options.NodeId, int64(r.socket.options.NodeTtl.Seconds()))
-}
-
-func (r *Register) RenewNode(ctx context.Context) (err error) {
-	if _, err = r.socket.redis.Expire(ctx, r.nodeKey(), int64(r.socket.options.NodeTtl.Seconds())); err != nil {
-		return
-	}
-
-	return
-}
-
-func (r *Register) DeleteNode() (err error) {
-	if _, err = r.socket.redis.Del(context.Background(), r.nodeKey()); err != nil {
-		return
-	}
-
-	return
+	*Socket
 }
 
 func (r *Register) Heartbeat(ctx context.Context) {
-	ticker := time.NewTicker(r.socket.options.NodeHeartbeat)
+	ticker := time.NewTicker(r.options.NodeHeartbeat)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			if err := r.socket.register.RenewNode(ctx); err != nil {
+			if err := r.register.RenewNode(ctx); err != nil {
 				g.Log().Errorf(ctx, "heartbeat renew node error: %v", err)
 			}
 
-			for _, group := range r.socket.connector.GetGroups() {
-				if err := r.socket.connector.RenewClients(ctx, group); err != nil {
+			for _, group := range r.connector.GetGroups() {
+				if err := r.connector.RenewClients(ctx, group); err != nil {
 					g.Log().Errorf(ctx, "heartbeat renew clients error: %v", err)
 				}
 			}
@@ -54,6 +34,26 @@ func (r *Register) Heartbeat(ctx context.Context) {
 	}
 }
 
+func (r *Register) AddNode(ctx context.Context) (err error) {
+	return r.redis.SetEX(ctx, r.nodeKey(), r.options.NodeId, int64(r.options.NodeTtl.Seconds()))
+}
+
+func (r *Register) RenewNode(ctx context.Context) (err error) {
+	if _, err = r.redis.Expire(ctx, r.nodeKey(), int64(r.options.NodeTtl.Seconds())); err != nil {
+		return
+	}
+
+	return
+}
+
+func (r *Register) DeleteNode() (err error) {
+	if _, err = r.redis.Del(context.Background(), r.nodeKey()); err != nil {
+		return
+	}
+
+	return
+}
+
 func (r *Register) nodeKey() (key string) {
-	return gstr.Join([]string{r.socket.options.RedisKeyPrefix, "node", r.socket.options.NodeId}, ":")
+	return gstr.Join([]string{r.options.RedisKeyPrefix, "node", r.options.NodeId}, ":")
 }

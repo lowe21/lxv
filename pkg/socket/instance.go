@@ -48,14 +48,14 @@ func instance() *Socket {
 			redis: g.Redis(options.RedisGroup),
 		}
 		socket.register = &Register{
-			socket: socket,
+			Socket: socket,
 		}
 		socket.connector = &Connector{
-			socket:  socket,
+			Socket:  socket,
 			clients: make(map[string]map[string]*Client),
 		}
-		socket.notifier = &Notifier{
-			socket: socket,
+		socket.broadcaster = &Broadcaster{
+			Socket: socket,
 		}
 		socket.Start()
 	})
@@ -68,11 +68,11 @@ func Connect(request *ghttp.Request, clientId string, group ...string) (err erro
 }
 
 func Notice(ctx context.Context, message []byte, clientIds []string, group ...string) (err error) {
-	return instance().notifier.Notice(ctx, message, clientIds, group...)
+	return instance().broadcaster.Notice(ctx, message, clientIds, group...)
 }
 
 func CloseClient(ctx context.Context, message []byte, clientIds []string, group ...string) (err error) {
-	return instance().notifier.CloseClient(ctx, message, "", clientIds, group...)
+	return instance().broadcaster.CloseClient(ctx, message, "", clientIds, group...)
 }
 
 func Stop() {
