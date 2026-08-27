@@ -15,8 +15,8 @@ const (
 	defaultNodeTtl            = "60s"
 	defaultNodeHeartbeat      = "20s"
 	defaultClientDefaultGroup = "default"
-	defaultInputQueueSize     = 16
-	defaultOutputQueueSize    = 32
+	defaultInputQueueSize     = 64
+	defaultOutputQueueSize    = 64
 	defaultMessageMaxSize     = 512
 	defaultPingInterval       = "60s"
 	defaultPongTimeout        = "90s"

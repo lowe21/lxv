@@ -57,10 +57,13 @@ func instance() *Socket {
 		socket.broadcaster = &Broadcaster{
 			Socket: socket,
 		}
-		socket.Start()
 	})
 
 	return socket
+}
+
+func Start() {
+	instance().Start()
 }
 
 func Connect(request *ghttp.Request, clientId string, group ...string) (err error) {
