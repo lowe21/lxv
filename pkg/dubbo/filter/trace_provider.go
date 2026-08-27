@@ -35,7 +35,7 @@ func (t *traceProviderFilter) Invoke(ctx context.Context, invoker base.Invoker, 
 
 	ctx, _ = gtrace.WithTraceID(ctx, traceId)
 	ctx, span := otel.Tracer("dubbo.apache.org/dubbo-go/v3", trace.WithInstrumentationVersion(constant.Version)).
-		Start(ctx, gstr.Join([]string{invoker.GetURL().Service(), invocation.MethodName()}, "."), trace.WithSpanKind(trace.SpanKindProducer), trace.WithAttributes(gtrace.CommonLabels()...))
+		Start(ctx, gstr.Join([]string{invoker.GetURL().Service(), invocation.MethodName()}, "."), trace.WithSpanKind(trace.SpanKindServer), trace.WithAttributes(gtrace.CommonLabels()...))
 	span.SetAttributes(
 		attribute.String("dubbo.url", invoker.GetURL().String()),
 	)
