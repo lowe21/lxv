@@ -32,7 +32,6 @@ func New(args ...any) error {
 				code = gcode.CodeNil.Code()
 				subCode = gstr.StrTillEx(err.Message(), "@")
 				message = gstr.StrEx(err.Message(), "@")
-				detail = err.Message()
 			} else {
 				switch errorCode := gerror.Code(arg).(type) {
 				case ErrCode:
