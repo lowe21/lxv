@@ -1,4 +1,4 @@
-package crypto_rsa
+package cryptorsa
 
 import (
 	"crypto"
@@ -19,13 +19,13 @@ import (
 )
 
 const (
-	Sha1      = "sha1"
-	Sha256    = "sha256"
-	Sha384    = "sha384"
-	Sha512    = "sha512"
-	PssSha256 = "pss-sha256"
-	PssSha384 = "pss-sha384"
-	PssSha512 = "pss-sha512"
+	SHA1      = "sha1"
+	SHA256    = "sha256"
+	SHA384    = "sha384"
+	SHA512    = "sha512"
+	SHA256PSS = "sha256-pss"
+	SHA384PSS = "sha384-pss"
+	SHA512PSS = "sha512-pss"
 )
 
 type CryptoRsa struct {
@@ -38,37 +38,30 @@ func (c *CryptoRsa) Sign(privateKey, content string, opts ...Option) (sign strin
 		return
 	}
 
-	options := *c.options
-	for _, opt := range opts {
-		if opt != nil {
-			opt(&options)
-		}
-	}
-
-	hash, pss, err := c.hash(&options)
+	hash, pss, err := c.hash(opts...)
 	if err != nil {
 		return
 	}
 
-	digest, err := c.digest(hash, content)
+	bytes, err := c.hashSum(hash, content)
 	if err != nil {
 		return
 	}
 
-	bytes := make([]byte, 0)
+	signed := make([]byte, 0)
 	if pss {
-		bytes, err = rsa.SignPSS(rand.Reader, key, hash, digest, &rsa.PSSOptions{
+		signed, err = rsa.SignPSS(rand.Reader, key, hash, bytes, &rsa.PSSOptions{
 			Hash:       hash,
 			SaltLength: rsa.PSSSaltLengthEqualsHash,
 		})
 	} else {
-		bytes, err = rsa.SignPKCS1v15(rand.Reader, key, hash, digest)
+		signed, err = rsa.SignPKCS1v15(rand.Reader, key, hash, bytes)
 	}
 	if err != nil {
 		return
 	}
 
-	return gbase64.EncodeToString(bytes), nil
+	return gbase64.EncodeToString(signed), nil
 }
 
 func (c *CryptoRsa) Verify(publicKey, content, sign string, opts ...Option) (err error) {
@@ -77,19 +70,12 @@ func (c *CryptoRsa) Verify(publicKey, content, sign string, opts ...Option) (err
 		return
 	}
 
-	options := *c.options
-	for _, opt := range opts {
-		if opt != nil {
-			opt(&options)
-		}
-	}
-
-	hash, pss, err := c.hash(&options)
+	hash, pss, err := c.hash(opts...)
 	if err != nil {
 		return
 	}
 
-	digest, err := c.digest(hash, content)
+	bytes, err := c.hashSum(hash, content)
 	if err != nil {
 		return
 	}
@@ -99,22 +85,22 @@ func (c *CryptoRsa) Verify(publicKey, content, sign string, opts ...Option) (err
 		sign = gstr.Replace(sign, " ", "+")
 	}
 
-	bytes, err := gbase64.DecodeString(sign)
+	signed, err := gbase64.DecodeString(sign)
 	if err != nil {
 		return
 	}
-	if len(bytes) != key.Size() {
+	if len(signed) != key.Size() {
 		return errcode.New("invalid RSA signature length")
 	}
 
 	if pss {
-		return rsa.VerifyPSS(key, hash, digest, bytes, &rsa.PSSOptions{
+		return rsa.VerifyPSS(key, hash, bytes, signed, &rsa.PSSOptions{
 			Hash:       hash,
 			SaltLength: rsa.PSSSaltLengthEqualsHash,
 		})
 	}
 
-	return rsa.VerifyPKCS1v15(key, hash, digest, bytes)
+	return rsa.VerifyPKCS1v15(key, hash, bytes, signed)
 }
 
 func (c *CryptoRsa) parsePrivateKey(privateKey string) (key *rsa.PrivateKey, err error) {
@@ -299,21 +285,28 @@ func (c *CryptoRsa) verifyPublicKey(key *rsa.PublicKey) (err error) {
 	return
 }
 
-func (c *CryptoRsa) hash(options *Options) (hash crypto.Hash, pss bool, err error) {
+func (c *CryptoRsa) hash(opts ...Option) (hash crypto.Hash, pss bool, err error) {
+	options := *c.options
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&options)
+		}
+	}
+
 	switch options.Hash {
-	case Sha1:
+	case SHA1:
 		return crypto.SHA1, false, nil
-	case Sha256:
+	case SHA256:
 		return crypto.SHA256, false, nil
-	case Sha384:
+	case SHA384:
 		return crypto.SHA384, false, nil
-	case Sha512:
+	case SHA512:
 		return crypto.SHA512, false, nil
-	case PssSha256:
+	case SHA256PSS:
 		return crypto.SHA256, true, nil
-	case PssSha384:
+	case SHA384PSS:
 		return crypto.SHA384, true, nil
-	case PssSha512:
+	case SHA512PSS:
 		return crypto.SHA512, true, nil
 	default:
 		err = errcode.New("invalid RSA hash algorithm")
@@ -321,7 +314,7 @@ func (c *CryptoRsa) hash(options *Options) (hash crypto.Hash, pss bool, err erro
 	}
 }
 
-func (c *CryptoRsa) digest(hash crypto.Hash, content string) (digest []byte, err error) {
+func (c *CryptoRsa) hashSum(hash crypto.Hash, content string) (bytes []byte, err error) {
 	if !hash.Available() {
 		err = errcode.New(fmt.Sprintf(`RSA hash algorithm "%v" is unavailable`, hash))
 		return

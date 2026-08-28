@@ -1,11 +1,11 @@
-package crypto_rsa
+package cryptorsa
 
 import (
 	"github.com/gogf/gf/v2/frame/g"
 )
 
 const (
-	defaultHash       = Sha256
+	defaultHash       = SHA256
 	defaultMinKeyBits = 2048
 )
 

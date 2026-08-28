@@ -1,4 +1,4 @@
-package crypto_rsa
+package cryptorsa
 
 import (
 	"sync"
