@@ -50,18 +50,18 @@ func ApiRequest(authFunc AuthFunc, idemFunc IdemFunc) ghttp.HandlerFunc {
 			if handler.GetMetaTag("auth") != "" {
 				authorization := request.Header.Get("Authorization")
 				if authorization == "" {
-					err = errcode.New(errcode.InvalidAuth, "Authorization header is empty")
+					err = errcode.New(errcode.ErrAuthFailed, "Authorization header is empty")
 					return
 				}
 
 				parts := gstr.Split(authorization, " ")
 				if len(parts) != 2 || parts[0] != "Bearer" {
-					err = errcode.New(errcode.InvalidAuth, "Authorization header is invalid")
+					err = errcode.New(errcode.ErrAuthFailed, "Authorization header is invalid")
 					return
 				}
 
 				if authFunc == nil {
-					err = errcode.New(errcode.InvalidAuth, "authFunc is nil")
+					err = errcode.New(errcode.ErrAuthFailed, "authFunc is nil")
 					return
 				}
 
@@ -71,7 +71,7 @@ func ApiRequest(authFunc AuthFunc, idemFunc IdemFunc) ghttp.HandlerFunc {
 					return
 				}
 				if sessionKey == "" {
-					err = errcode.New(errcode.InvalidAuth, "sessionKey is empty")
+					err = errcode.New(errcode.ErrAuthFailed, "sessionKey is empty")
 					return
 				}
 
@@ -93,7 +93,7 @@ func ApiRequest(authFunc AuthFunc, idemFunc IdemFunc) ghttp.HandlerFunc {
 
 		req := &common.ApiReq{}
 		if err = validation.Validator(ctx, req); err != nil {
-			err = errcode.New(errcode.InvalidParam, err.Error())
+			err = errcode.New(errcode.ErrInvalidParam, err.Error())
 			return
 		}
 
@@ -119,7 +119,7 @@ func ApiRequest(authFunc AuthFunc, idemFunc IdemFunc) ghttp.HandlerFunc {
 			}
 			sign, _ := hex.DecodeString(req.Sign)
 			if !hmac.Equal(hash.Sum(nil), sign) {
-				err = errcode.InvalidSign
+				err = errcode.ErrInvalidSign
 				return
 			}
 		}

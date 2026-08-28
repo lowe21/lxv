@@ -40,7 +40,7 @@ func (s *Socket) Start() {
 
 func (s *Socket) Connect(request *ghttp.Request, clientId string, group ...string) (err error) {
 	if clientId == "" {
-		return errcode.New(errcode.InvalidRequest, "client id is empty")
+		return errcode.New(errcode.ErrInvalidRequest, "client id is empty")
 	}
 
 	conn, err := s.upgrader.Upgrade(request.Response.Writer, request.Request, nil)

@@ -122,7 +122,7 @@ func (c *Client) handler() {
 		case message := <-c.input:
 			input := &Input{}
 			if err := gconv.Scan(message, input); err != nil {
-				c.Send(Message(input.Id, "error", errcode.New(errcode.InvalidParam, "message body should be a json object format")))
+				c.Send(Message(input.Id, "error", errcode.New(errcode.ErrInvalidParam, "message body should be a json object format")))
 				continue
 			}
 

@@ -29,7 +29,7 @@ type sentinelFilter struct{}
 func (s *sentinelFilter) Invoke(ctx context.Context, invoker base.Invoker, invocation base.Invocation) (res result.Result) {
 	entry, block := sentinel.Entry(gstr.Join([]string{invoker.GetURL().Service(), invocation.MethodName()}, "."), sentinel.WithResourceType(constant.ResTypeRPC), sentinel.WithTrafficType(constant.Inbound))
 	if block != nil {
-		subCode, message := errcode.Parse(errcode.SystemBusy)
+		subCode, message := errcode.Parse(errcode.ErrSystemBusy)
 
 		return &result.RPCResult{
 			Err: java_exception.NewThrowable(gstr.Join([]string{subCode, message}, "@")),

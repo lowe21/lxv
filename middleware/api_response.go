@@ -55,7 +55,7 @@ func ApiResponse(request *ghttp.Request) {
 	} else {
 		if request.Response.Status >= http.StatusBadRequest {
 			request.Response.ClearBuffer()
-			subCode, _ = errcode.Parse(errcode.GatewayError)
+			subCode, _ = errcode.Parse(errcode.ErrGateway)
 			message = fmt.Sprintf("HTTP %d %s", request.Response.Status, http.StatusText(request.Response.Status))
 		} else {
 			if request.Response.Status >= http.StatusMultipleChoices {

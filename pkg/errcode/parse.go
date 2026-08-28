@@ -10,25 +10,25 @@ import (
 
 func Parse(err error) (subCode, message string) {
 	if err == nil {
-		err = UnknownError
+		err = ErrUnknown
 	}
 
 	errorCode := gerror.Code(err)
 	if _, ok := errorCode.(ErrCode); !ok {
 		switch errorCode.Code() {
 		case gcode.CodeInternalPanic.Code():
-			err = SystemError
+			err = ErrSystem
 		case gcode.CodeInternalError.Code():
-			err = InternalError
+			err = ErrInternal
 		case gcode.CodeDbOperationError.Code():
-			err = OperationError
+			err = ErrOperationFailed
 		case gcode.CodeValidationFailed.Code():
-			err = New(InvalidParam, err.Error())
+			err = New(ErrInvalidParam, err.Error())
 		default:
 			if _, ok = errors.AsType[*redsync.ErrTaken](err); ok {
-				err = SystemBusy
+				err = ErrSystemBusy
 			} else if _, ok = errors.AsType[*redsync.ErrNodeTaken](err); ok {
-				err = SystemBusy
+				err = ErrSystemBusy
 			} else {
 				lastErr := err
 				for {
