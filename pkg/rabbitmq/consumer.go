@@ -24,6 +24,13 @@ type Consumer struct {
 
 func (c *Consumer) Listen(ctx context.Context, exchangeType, exchangeName, routingKey string, listener any, opts ...ConsumerOption) (err error) {
 	deliveryHandler := func(ctx context.Context, delivery *amqp.Delivery) (err error) {
+		defer func() {
+			if exception := recover(); exception != nil {
+				g.Log().Errorf(ctx, "listener consume panic: %+v", exception)
+				err = errcode.New(exception)
+			}
+		}()
+
 		message := &Message{}
 		if err = gconv.Scan(delivery.Body, message); err != nil {
 			return

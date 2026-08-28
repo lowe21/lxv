@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/util/gconv"
 
 	"github.com/lowe21/lxv/pkg/errcode"
@@ -127,6 +128,13 @@ func (c *Client) handler() {
 			}
 
 			if err := func() (err error) {
+				defer func() {
+					if exception := recover(); exception != nil {
+						g.Log().Errorf(c.ctx, "event handler panic: %+v", exception)
+						err = errcode.New(exception)
+					}
+				}()
+
 				if err = validation.Validator(c.ctx, input); err != nil {
 					return
 				}
