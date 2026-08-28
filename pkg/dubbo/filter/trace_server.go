@@ -20,14 +20,14 @@ import (
 )
 
 func init() {
-	extension.SetFilter("trace-provider", func() filter.Filter {
-		return &traceProviderFilter{}
+	extension.SetFilter("trace-server", func() filter.Filter {
+		return &traceServerFilter{}
 	})
 }
 
-type traceProviderFilter struct{}
+type traceServerFilter struct{}
 
-func (t *traceProviderFilter) Invoke(ctx context.Context, invoker base.Invoker, invocation base.Invocation) (res result.Result) {
+func (t *traceServerFilter) Invoke(ctx context.Context, invoker base.Invoker, invocation base.Invocation) (res result.Result) {
 	traceId, _ := invocation.GetAttachment("trace-id")
 	if traceId == "" {
 		return invoker.Invoke(ctx, invocation)
@@ -55,6 +55,6 @@ func (t *traceProviderFilter) Invoke(ctx context.Context, invoker base.Invoker, 
 	return invoker.Invoke(ctx, invocation)
 }
 
-func (t *traceProviderFilter) OnResponse(_ context.Context, result result.Result, _ base.Invoker, _ base.Invocation) result.Result {
+func (t *traceServerFilter) OnResponse(_ context.Context, result result.Result, _ base.Invoker, _ base.Invocation) result.Result {
 	return result
 }
