@@ -8,9 +8,10 @@
 .settings/
 .test/
 .vscode/
-main
-main.exe
 /build
 /cache
 /log
+main
+main.exe
+main.go
 *_test.go
