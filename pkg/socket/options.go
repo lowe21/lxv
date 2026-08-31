@@ -65,7 +65,7 @@ func defaultOptions() *Options {
 		options.NodeHeartbeat = gconv.Duration(defaultNodeHeartbeat)
 	}
 	if options.NodeHeartbeat >= options.NodeTtl {
-		panic("nodeHeartbeat must be less than nodeTtl")
+		panic("options error, nodeHeartbeat must be less than nodeTtl")
 	}
 	if options.ClientDefaultGroup == "" {
 		options.ClientDefaultGroup = defaultClientDefaultGroup
@@ -86,7 +86,7 @@ func defaultOptions() *Options {
 		options.PongTimeout = gconv.Duration(defaultPongTimeout)
 	}
 	if options.PongTimeout < options.PingInterval {
-		panic("pongTimeout must be greater than or equal to pingInterval")
+		panic("options error, pongTimeout must be greater than or equal to pingInterval")
 	}
 	if options.WriteTimeout <= 0 {
 		options.WriteTimeout = gconv.Duration(defaultWriteTimeout)

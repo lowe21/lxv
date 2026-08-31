@@ -30,7 +30,7 @@ func (s *Socket) Start() {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 
 		if err := s.register.AddNode(s.ctx); err != nil {
-			panic(fmt.Sprintf("register node error: %v", err))
+			panic(fmt.Sprintf("register node error, %v", err))
 		}
 
 		go s.register.Heartbeat(s.ctx)

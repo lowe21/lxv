@@ -263,7 +263,7 @@ func (c *CryptoRsa) verifyPrivateKey(key *rsa.PrivateKey) (err error) {
 	}
 
 	if key.E < 3 || key.E%2 == 0 {
-		return errcode.New("invalid RSA private key exponent")
+		err = errcode.New("invalid RSA private key exponent")
 	}
 
 	return
@@ -279,7 +279,7 @@ func (c *CryptoRsa) verifyPublicKey(key *rsa.PublicKey) (err error) {
 	}
 
 	if key.E < 3 || key.E%2 == 0 {
-		return errcode.New("invalid RSA public key exponent")
+		err = errcode.New("invalid RSA public key exponent")
 	}
 
 	return
@@ -310,8 +310,9 @@ func (c *CryptoRsa) hash(opts ...Option) (hash crypto.Hash, pss bool, err error)
 		return crypto.SHA512, true, nil
 	default:
 		err = errcode.New("invalid RSA hash algorithm")
-		return
 	}
+
+	return
 }
 
 func (c *CryptoRsa) hashSum(hash crypto.Hash, content string) (bytes []byte, err error) {

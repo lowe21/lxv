@@ -11,7 +11,6 @@ import (
 
 const (
 	defaultGroup           = "default"
-	defaultUri             = ""
 	defaultConnectTimeout  = "3s"
 	defaultMaxConnIdleTime = "0"
 	defaultMaxPoolSize     = 0
@@ -42,13 +41,13 @@ func defaultOptions(group string) *Options {
 	}
 
 	if options.Uri == "" {
-		options.Uri = defaultUri
+		panic("options error, uri is empty")
 	}
 	if options.AppName == "" {
 		options.AppName = g.Server().GetName()
 	}
 	if options.Database == "" {
-		panic("database is empty")
+		panic("options error, database is empty")
 	}
 	if options.ConnectTimeout <= 0 {
 		options.ConnectTimeout = gconv.Duration(defaultConnectTimeout)

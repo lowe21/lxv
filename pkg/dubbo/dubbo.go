@@ -36,7 +36,7 @@ func Load() {
 func SetService(service common.RPCService) {
 	reference := common.GetReference(service)
 	if reference == "" {
-		panic(fmt.Sprintf("%T reference is empty", service))
+		panic(fmt.Sprintf("service reference is empty, type: %T", service))
 	}
 
 	registerPOJO(reference, getPOJOElems(service))
@@ -48,7 +48,7 @@ func SetService(service common.RPCService) {
 func SetClient(service common.RPCService, info *ClientInfo) {
 	reference := common.GetReference(service)
 	if reference == "" {
-		panic(fmt.Sprintf("%T reference is empty", service))
+		panic(fmt.Sprintf("client reference is empty, type: %T", service))
 	}
 
 	registerPOJO(reference, getPOJOElems(service))
@@ -110,57 +110,57 @@ func registerPOJO(reference string, elems []reflect.Type) {
 func getPOJOElems(service common.RPCService) (elems []reflect.Type) {
 	reflectValue := gutil.OriginValueAndKind(service)
 	reflectType := gutil.OriginTypeAndKind(service)
-	handlers := make([]reflect.Type, 0)
+	functions := make([]reflect.Type, 0)
 
 	if reflectValue.OriginValue.NumField() > 0 {
 		for i := 0; i < reflectValue.OriginValue.NumField(); i++ {
 			field := reflectValue.OriginValue.Field(i)
 			switch field.Kind() {
 			case reflect.Func:
-				handlers = append(handlers, field.Type())
+				functions = append(functions, field.Type())
 			default:
-				panic(fmt.Sprintf("invalid handler parameter type %v", field.Type()))
+				panic(fmt.Sprintf("invalid function parameter type %v", field.Type()))
 			}
 		}
 	} else {
 		for i := 0; i < reflectValue.InputValue.NumMethod(); i++ {
 			if reflectType.InputType.Method(i).Name != "Reference" {
-				handlers = append(handlers, reflectValue.InputValue.Method(i).Type())
+				functions = append(functions, reflectValue.InputValue.Method(i).Type())
 			}
 		}
 	}
 
-	for _, handler := range handlers {
-		numIn := handler.NumIn()
-		numOut := handler.NumOut()
+	for _, function := range functions {
+		numIn := function.NumIn()
+		numOut := function.NumOut()
 		if numIn != 2 || numOut != 2 {
-			panic(fmt.Sprintf("invalid handler defined as %v, but func(context.Context, *XxReq) (*XxRes, error) is required", handler))
+			panic(fmt.Sprintf("invalid function defined as %v, but func(context.Context, *XxReq) (*XxRes, error) is required", function))
 		}
 
 		for i := 0; i < numIn; i++ {
-			in := handler.In(i)
+			in := function.In(i)
 			if i != numIn-1 {
 				if !in.Implements(reflect.TypeOf((*context.Context)(nil)).Elem()) {
-					panic(fmt.Sprintf("invalid handler defined as %v, but the first input parameter should be type of context.Context", handler))
+					panic(fmt.Sprintf("invalid function defined as %v, but the first input parameter should be type of context.Context", function))
 				}
 			} else {
 				if in.Kind() != reflect.Ptr || (in.Kind() == reflect.Ptr && in.Elem().Kind() != reflect.Struct) {
-					panic(fmt.Sprintf("invalid handler defined as %v, but the second input parameter should be type of pointer to struct like *XxReq", handler))
+					panic(fmt.Sprintf("invalid function defined as %v, but the second input parameter should be type of pointer to struct like *XxReq", function))
 				}
 				elems = append(elems, in.Elem())
 			}
 		}
 
 		for i := 0; i < numOut; i++ {
-			out := handler.Out(i)
+			out := function.Out(i)
 			if i != numOut-1 {
 				if out.Kind() != reflect.Ptr || (out.Kind() == reflect.Ptr && out.Elem().Kind() != reflect.Struct) {
-					panic(fmt.Sprintf("invalid handler defined as %v, but the first output parameter should be type of pointer to struct like *XxRes", handler))
+					panic(fmt.Sprintf("invalid function defined as %v, but the first output parameter should be type of pointer to struct like *XxRes", function))
 				}
 				elems = append(elems, out.Elem())
 			} else {
 				if !out.Implements(reflect.TypeOf((*error)(nil)).Elem()) {
-					panic(fmt.Sprintf("invalid handler defined as %v, but the second output parameter should be type of error", handler))
+					panic(fmt.Sprintf("invalid function defined as %v, but the second output parameter should be type of error", function))
 				}
 			}
 		}

@@ -26,7 +26,7 @@ func (c *Consumer) Listen(ctx context.Context, exchangeType, exchangeName, routi
 	deliveryHandler := func(ctx context.Context, delivery *amqp.Delivery) (err error) {
 		defer func() {
 			if exception := recover(); exception != nil {
-				g.Log().Errorf(ctx, "listener consume panic: %+v", exception)
+				g.Log().Errorf(ctx, "deliveryHandler panic, %+v", exception)
 				err = errcode.New(exception)
 			}
 		}()
@@ -116,7 +116,10 @@ func (c *Consumer) Consume(ctx context.Context, exchangeName, routingKey string,
 			select {
 			case delivery, ok := <-deliveries:
 				if !ok {
-					return &amqp.Error{Code: amqp.ChannelError, Reason: "delivery channel is closed"}
+					return &amqp.Error{
+						Code:   amqp.ChannelError,
+						Reason: "delivery channel is closed",
+					}
 				}
 				func() {
 					deliveryCtx, deliveryCancel := context.WithCancel(ctx)
@@ -147,7 +150,10 @@ func (c *Consumer) Consume(ctx context.Context, exchangeName, routingKey string,
 				}()
 			case <-notifyCancel:
 				if !options.ConsumeCancel {
-					err = &amqp.Error{Code: amqp.ChannelError, Reason: "queue is deleted or moved to another node"}
+					err = &amqp.Error{
+						Code:   amqp.ChannelError,
+						Reason: "queue is deleted or moved to another node",
+					}
 				}
 				return
 			case err = <-notifyClose:
@@ -164,7 +170,7 @@ func (c *Consumer) Consume(ctx context.Context, exchangeName, routingKey string,
 			defer c.wg.Done()
 			for {
 				if err = consume(); err != nil {
-					g.Log().Errorf(ctx, "consume %s %s error: %v", exchangeName, routingKey, err)
+					g.Log().Errorf(ctx, "consume error, %+v", err)
 					select {
 					case <-time.After(c.options.ReconnectInterval):
 					case <-ctx.Done():
@@ -224,7 +230,10 @@ func (c *Consumer) ConsumeDlx(ctx context.Context, exchangeName, routingKey stri
 			select {
 			case delivery, ok := <-deliveries:
 				if !ok {
-					return &amqp.Error{Code: amqp.ChannelError, Reason: "delivery channel is closed"}
+					return &amqp.Error{
+						Code:   amqp.ChannelError,
+						Reason: "delivery channel is closed",
+					}
 				}
 				func() {
 					deliveryCtx, deliveryCancel := context.WithCancel(ctx)
@@ -238,7 +247,10 @@ func (c *Consumer) ConsumeDlx(ctx context.Context, exchangeName, routingKey stri
 				}()
 			case <-notifyCancel:
 				if !options.ConsumeCancel {
-					err = &amqp.Error{Code: amqp.ChannelError, Reason: "queue is deleted or moved to another node"}
+					err = &amqp.Error{
+						Code:   amqp.ChannelError,
+						Reason: "queue is deleted or moved to another node",
+					}
 				}
 				return
 			case err = <-notifyClose:
@@ -254,7 +266,7 @@ func (c *Consumer) ConsumeDlx(ctx context.Context, exchangeName, routingKey stri
 		defer c.wg.Done()
 		for {
 			if err = consumeDlx(); err != nil {
-				g.Log().Errorf(ctx, "consumeDlx %s %s error: %v", exchangeName, routingKey, err)
+				g.Log().Errorf(ctx, "consumeDlx error, %+v", err)
 				select {
 				case <-time.After(c.options.ReconnectInterval):
 				case <-ctx.Done():
@@ -300,7 +312,10 @@ func (c *Consumer) Subscribe(ctx context.Context, exchangeName string, deliveryH
 			select {
 			case delivery, ok := <-deliveries:
 				if !ok {
-					return &amqp.Error{Code: amqp.ChannelError, Reason: "delivery channel is closed"}
+					return &amqp.Error{
+						Code:   amqp.ChannelError,
+						Reason: "delivery channel is closed",
+					}
 				}
 				func() {
 					deliveryCtx, deliveryCancel := context.WithCancel(ctx)
@@ -315,7 +330,10 @@ func (c *Consumer) Subscribe(ctx context.Context, exchangeName string, deliveryH
 					}
 				}()
 			case <-notifyCancel:
-				return &amqp.Error{Code: amqp.ChannelError, Reason: "queue is deleted or moved to another node"}
+				return &amqp.Error{
+					Code:   amqp.ChannelError,
+					Reason: "queue is deleted or moved to another node",
+				}
 			case err = <-notifyClose:
 				return
 			case <-ctx.Done():
@@ -329,7 +347,7 @@ func (c *Consumer) Subscribe(ctx context.Context, exchangeName string, deliveryH
 		defer c.wg.Done()
 		for {
 			if err = subscribe(); err != nil {
-				g.Log().Errorf(ctx, "subscribe %s error: %v", exchangeName, err)
+				g.Log().Errorf(ctx, "subscribe error, %+v", err)
 				select {
 				case <-time.After(c.options.ReconnectInterval):
 				case <-ctx.Done():

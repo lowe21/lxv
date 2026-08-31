@@ -130,7 +130,7 @@ func (c *Client) handler() {
 			if err := func() (err error) {
 				defer func() {
 					if exception := recover(); exception != nil {
-						g.Log().Errorf(c.ctx, "event handler panic: %+v", exception)
+						g.Log().Errorf(c.ctx, "event handler panic, %+v", exception)
 						err = errcode.New(exception)
 					}
 				}()

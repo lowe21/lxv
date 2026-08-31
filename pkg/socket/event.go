@@ -24,7 +24,7 @@ func GetEvent(name string) (event Event, err error) {
 
 	event, ok := events[name]
 	if !ok {
-		err = errcode.New(errcode.ErrInvalidEvent, fmt.Sprintf(`event "%s" not found`, name))
+		err = errcode.New(errcode.ErrInvalidEvent, fmt.Sprintf("event not found, name: %s", name))
 	}
 
 	return
@@ -36,14 +36,14 @@ func SetEvent(event Event) {
 
 	name := event.Name()
 	if name == "" {
-		panic(fmt.Sprintf("%T name is empty", event))
+		panic(fmt.Sprintf("event name is empty, type: %T", event))
 	}
 
 	if events == nil {
 		events = make(map[string]Event)
 	}
 	if _, ok := events[name]; ok {
-		panic(fmt.Sprintf(`%T name "%s" already exists`, event, name))
+		panic(fmt.Sprintf("event already exists, name: %s", name))
 	}
 	events[name] = event
 }

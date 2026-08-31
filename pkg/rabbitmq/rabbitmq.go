@@ -43,13 +43,6 @@ func (r *RabbitMq) Start() {
 		if err := table.Append(rows); err != nil {
 			panic(err)
 		}
-		defer func() {
-			if len(queueListeners) > 0 || len(subscribeListeners) > 0 {
-				_ = table.Render()
-			} else {
-				_ = table.Close()
-			}
-		}()
 
 		index := 0
 		for _, queueListener := range queueListeners {
@@ -73,6 +66,12 @@ func (r *RabbitMq) Start() {
 			if err := table.Append(index, amqp.ExchangeFanout, exchangeName, "", fmt.Sprintf("%T", subscribeListener), "LISTEN"); err != nil {
 				panic(err)
 			}
+		}
+
+		if index > 0 {
+			_ = table.Render()
+		} else {
+			_ = table.Close()
 		}
 	})
 }

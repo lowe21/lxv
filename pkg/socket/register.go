@@ -20,12 +20,12 @@ func (r *Register) Heartbeat(ctx context.Context) {
 		select {
 		case <-ticker.C:
 			if err := r.register.RenewNode(ctx); err != nil {
-				g.Log().Errorf(ctx, "heartbeat renew node error: %v", err)
+				g.Log().Errorf(ctx, "heartbeat renew node error, %v", err)
 			}
 
 			for _, group := range r.connector.GetGroups() {
 				if err := r.connector.RenewClients(ctx, group); err != nil {
-					g.Log().Errorf(ctx, "heartbeat renew clients error: %v", err)
+					g.Log().Errorf(ctx, "heartbeat renew clients error, %v", err)
 				}
 			}
 		case <-ctx.Done():

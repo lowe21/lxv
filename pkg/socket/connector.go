@@ -84,7 +84,7 @@ func (c *Connector) AddClient(ctx context.Context, client *Client) (err error) {
 	nodeId := data.String()
 	if nodeId != "" && nodeId != c.options.NodeId {
 		if err := c.broadcaster.CloseClient(ctx, []byte("already connected elsewhere"), nodeId, []string{client.id}, client.group); err != nil {
-			g.Log().Errorf(ctx, "close client error: %v", err)
+			g.Log().Errorf(ctx, "close client error, %v", err)
 		}
 	}
 

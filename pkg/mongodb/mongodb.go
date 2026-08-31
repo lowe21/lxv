@@ -2,7 +2,6 @@ package mongodb
 
 import (
 	"context"
-	"reflect"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -26,11 +25,6 @@ func (m *Mongodb) Count(ctx context.Context, collection string, filter any) (cou
 func (m *Mongodb) Find(ctx context.Context, collection string, filter, pointer any) (err error) {
 	if err = m.client.Database(m.options.Database).Collection(collection).FindOne(ctx, filter).Decode(pointer); err != nil {
 		if gerror.Is(err, mongo.ErrNoDocuments) {
-			reflectValue := reflect.ValueOf(pointer)
-			if reflectValue.Kind() == reflect.Pointer && !reflectValue.IsNil() {
-				elem := reflectValue.Elem()
-				elem.Set(reflect.Zero(elem.Type()))
-			}
 			err = nil
 		}
 	}

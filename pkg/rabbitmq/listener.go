@@ -34,11 +34,11 @@ func SetQueueListener(queueListener QueueListener) {
 
 	exchangeName := queueListener.ExchangeName()
 	if exchangeName == "" {
-		panic(fmt.Sprintf("%T exchangeName is empty", queueListener))
+		panic(fmt.Sprintf("queueListener exchangeName is empty, type: %T", queueListener))
 	}
 	routingKey := queueListener.RoutingKey()
 	if routingKey == "" {
-		panic(fmt.Sprintf("%T routingKey is empty", queueListener))
+		panic(fmt.Sprintf("queueListener routingKey is empty, type: %T", queueListener))
 	}
 
 	if queueListeners == nil {
@@ -46,7 +46,7 @@ func SetQueueListener(queueListener QueueListener) {
 	}
 	name := gstr.Join([]string{exchangeName, routingKey}, ".")
 	if _, ok := queueListeners[name]; ok {
-		panic(fmt.Sprintf(`%T exchangeName "%s" and routingKey "%s" already exists`, queueListener, exchangeName, routingKey))
+		panic(fmt.Sprintf("queueListener already exists, exchangeName: %s, routingKey: %s", exchangeName, routingKey))
 	}
 	queueListeners[name] = queueListener
 }
@@ -57,14 +57,14 @@ func SetSubscribeListener(subscribeListener SubscribeListener) {
 
 	exchangeName := subscribeListener.ExchangeName()
 	if exchangeName == "" {
-		panic(fmt.Sprintf("%T exchangeName is empty", subscribeListener))
+		panic(fmt.Sprintf("subscribeListener exchangeName is empty, type: %T", subscribeListener))
 	}
 
 	if subscribeListeners == nil {
 		subscribeListeners = make(map[string]SubscribeListener)
 	}
 	if _, ok := subscribeListeners[exchangeName]; ok {
-		panic(fmt.Sprintf(`%T exchangeName "%s" already exists`, subscribeListener, exchangeName))
+		panic(fmt.Sprintf("subscribeListener already exists, exchangeName: %s", exchangeName))
 	}
 	subscribeListeners[exchangeName] = subscribeListener
 }

@@ -30,13 +30,13 @@ func (g *Graylog) worker() {
 	for {
 		conn, err := gudp.NewClientConn(g.options.Address)
 		if err != nil {
-			log.Printf("worker error: %v", err)
+			log.Printf("worker error, %v", err)
 		} else {
 		loop:
 			for gelf := range g.gelf {
 				chunks, err := g.compress(gelf)
 				if err != nil {
-					log.Printf("compress error: %v", err)
+					log.Printf("compress error, %v", err)
 					continue
 				}
 				for _, chunk := range chunks {

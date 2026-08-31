@@ -8,7 +8,6 @@ import (
 )
 
 const (
-	defaultUri               = ""
 	defaultVhost             = "/"
 	defaultChannelMax        = 0
 	defaultFrameSize         = 0
@@ -52,7 +51,7 @@ func defaultOptions() *Options {
 		options.Product = g.Server().GetName()
 	}
 	if options.Uri == "" {
-		options.Uri = defaultUri
+		panic("options error, uri is empty")
 	}
 	if options.Vhost == "" {
 		options.Vhost = defaultVhost

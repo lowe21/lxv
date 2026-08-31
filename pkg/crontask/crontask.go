@@ -49,12 +49,10 @@ func (c *CronTask) Start() {
 				g.Log().Error(c.ctx, err)
 				continue
 			}
-
 			if err = c.AddTask(c.ctx, option.Name, option.Pattern, tasker); err != nil {
 				g.Log().Error(c.ctx, err)
 				continue
 			}
-
 			index += 1
 			if err = table.Append(index, option.Name, option.Pattern, fmt.Sprintf("%T", tasker), "OK"); err != nil {
 				panic(err)

@@ -32,7 +32,7 @@ func (b *Broadcaster) Subscribe(ctx context.Context) {
 	for {
 		conn, _, err := b.redis.GroupPubSub().Subscribe(ctx, b.channelKey())
 		if err != nil {
-			g.Log().Errorf(ctx, "subscribe error: %v", err)
+			g.Log().Errorf(ctx, "subscribe error, %v", err)
 		} else {
 			done := make(chan struct{})
 			go func() {
@@ -53,7 +53,7 @@ func (b *Broadcaster) Subscribe(ctx context.Context) {
 
 				broadcast := &Broadcast{}
 				if err = gconv.Scan(message.Payload, broadcast); err != nil {
-					g.Log().Errorf(ctx, "receive message error: %v", err)
+					g.Log().Errorf(ctx, "receive message error, %v", err)
 					continue
 				}
 				if broadcast.SourceNodeId == b.options.NodeId && broadcast.TargetNodeId == "" {
@@ -152,7 +152,7 @@ func (b *Broadcaster) Notice(ctx context.Context, message []byte, clientIds []st
 
 				if len(staleClientIds) > 0 {
 					if err := b.connector.DeleteNodeClients(ctx, targetNodeId, staleClientIds, group...); err != nil {
-						g.Log().Errorf(ctx, "delete node clients error: %v", err)
+						g.Log().Errorf(ctx, "delete node clients error, %v", err)
 					}
 				}
 
