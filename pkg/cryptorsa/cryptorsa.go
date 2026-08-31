@@ -316,7 +316,7 @@ func (c *CryptoRsa) hash(opts ...Option) (hash crypto.Hash, pss bool, err error)
 
 func (c *CryptoRsa) hashSum(hash crypto.Hash, content string) (bytes []byte, err error) {
 	if !hash.Available() {
-		err = errcode.New(fmt.Sprintf(`RSA hash algorithm "%v" is unavailable`, hash))
+		err = errcode.New("RSA hash algorithm is not available")
 		return
 	}
 
