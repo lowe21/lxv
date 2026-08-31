@@ -24,7 +24,7 @@ func GetTasker(name string) (tasker Tasker, err error) {
 
 	tasker, ok := taskers[name]
 	if !ok {
-		err = errcode.New(fmt.Sprintf(`tasker name "%s" not found`, name))
+		err = errcode.New(fmt.Sprintf("tasker not found, name: %s", name))
 	}
 
 	return
@@ -36,14 +36,14 @@ func SetTasker(tasker Tasker) {
 
 	name := tasker.Name()
 	if name == "" {
-		panic(fmt.Sprintf(`tasker "%T" name is empty`, tasker))
+		panic(fmt.Sprintf("tasker name is empty, type: %T", tasker))
 	}
 
 	if taskers == nil {
 		taskers = make(map[string]Tasker)
 	}
 	if _, ok := taskers[name]; ok {
-		panic(fmt.Sprintf(`tasker name "%s" already exists`, name))
+		panic(fmt.Sprintf("tasker already exists, name: %s", name))
 	}
 	taskers[name] = tasker
 }

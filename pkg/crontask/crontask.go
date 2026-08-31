@@ -71,21 +71,22 @@ func (c *CronTask) Start() {
 
 func (c *CronTask) AddTask(ctx context.Context, name, pattern string, tasker Tasker) (err error) {
 	if c.cron.Search(name) != nil {
-		err = errcode.New(fmt.Sprintf(`task name "%s" already exists`, name))
+		err = errcode.New(fmt.Sprintf("task already exists, name: %s", name))
 		return
 	}
 
 	if _, err = c.cron.AddSingleton(ctx, pattern, func(ctx context.Context) {
 		defer func() {
 			if exception := recover(); exception != nil {
-				g.Log().Errorf(ctx, `task name "%s" run panic: %+v`, name, exception)
+				g.Log().Errorf(ctx, "task run panic, %+v", exception)
 			}
 		}()
 
 		if err := tasker.Run(ctx); err != nil {
-			g.Log().Errorf(ctx, `task name "%s" run error: %v`, name, err)
+			g.Log().Errorf(ctx, "task run error, %+v", err)
 		}
 	}, name); err != nil {
+		err = errcode.New(fmt.Sprintf("task add error, %v", err))
 		return
 	}
 
