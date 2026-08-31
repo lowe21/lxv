@@ -18,11 +18,11 @@ import (
 )
 
 type (
-	AuthFunc func(ctx context.Context, token string, refresh bool) (payload *jwt.Payload, sessionKey string, err error)
-	IdemFunc func(ctx context.Context, requestId, timestamp string) (err error)
+	AuthHandler func(ctx context.Context, token string, refresh bool) (payload *jwt.Payload, sessionKey string, err error)
+	PreHandler  func(ctx context.Context, req *common.ApiReq) (err error)
 )
 
-func ApiRequest(authFunc AuthFunc, idemFunc IdemFunc) ghttp.HandlerFunc {
+func ApiRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFunc {
 	return func(request *ghttp.Request) {
 		err := request.GetError()
 		if err != nil {
@@ -60,13 +60,13 @@ func ApiRequest(authFunc AuthFunc, idemFunc IdemFunc) ghttp.HandlerFunc {
 					return
 				}
 
-				if authFunc == nil {
-					err = errcode.New(errcode.ErrAuthFailed, "authFunc is nil")
+				if authHandler == nil {
+					err = errcode.New(errcode.ErrAuthFailed, "authHandler is nil")
 					return
 				}
 
 				payload := &jwt.Payload{}
-				payload, sessionKey, err = authFunc(ctx, parts[1], handler.GetMetaTag("refresh") != "")
+				payload, sessionKey, err = authHandler(ctx, parts[1], handler.GetMetaTag("refresh") != "")
 				if err != nil {
 					return
 				}
@@ -124,8 +124,8 @@ func ApiRequest(authFunc AuthFunc, idemFunc IdemFunc) ghttp.HandlerFunc {
 			}
 		}
 
-		if idemFunc != nil {
-			if err = idemFunc(ctx, req.RequestId, req.Timestamp); err != nil {
+		if preHandler != nil {
+			if err = preHandler(ctx, req); err != nil {
 				return
 			}
 		}
