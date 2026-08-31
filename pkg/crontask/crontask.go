@@ -87,7 +87,6 @@ func (c *CronTask) AddTask(ctx context.Context, name, pattern string, tasker Tas
 		}
 	}, name); err != nil {
 		err = errcode.New(fmt.Sprintf("task add error, %v", err))
-		return
 	}
 
 	return
