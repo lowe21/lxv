@@ -1,8 +1,6 @@
 package crontask
 
 import (
-	"slices"
-
 	"github.com/gogf/gf/v2/frame/g"
 )
 
@@ -17,7 +15,5 @@ func defaultOptions() []*Option {
 		panic(err)
 	}
 
-	return slices.DeleteFunc(options, func(option *Option) bool {
-		return option.Name == "" || option.Pattern == ""
-	})
+	return options
 }
