@@ -10,6 +10,7 @@ import (
 	"github.com/olekukonko/tablewriter/tw"
 
 	"github.com/gogf/gf/v2/container/garray"
+	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gcron"
 
@@ -81,7 +82,7 @@ func (c *CronTask) AddTask(ctx context.Context, name, pattern string, tasker Tas
 		}()
 
 		if err := tasker.Run(ctx); err != nil {
-			g.Log().Errorf(ctx, "task run error, %+v", err)
+			g.Log().Error(ctx, gerror.Wrap(err, fmt.Sprintf("%s %s", name, pattern)))
 		}
 	}, name); err != nil {
 		err = errcode.New(fmt.Sprintf("task add error, %v", err))

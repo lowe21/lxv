@@ -2,11 +2,13 @@ package socket
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
 
+	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/util/gconv"
 
@@ -132,6 +134,10 @@ func (c *Client) handler() {
 					if exception := recover(); exception != nil {
 						g.Log().Errorf(c.ctx, "event handler panic, %+v", exception)
 						err = errcode.New(exception)
+					} else {
+						if err != nil {
+							g.Log().Error(c.ctx, gerror.Wrap(err, fmt.Sprintf("%s %s %s", input.Id, input.Event, input.Data)))
+						}
 					}
 				}()
 

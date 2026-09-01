@@ -2,12 +2,14 @@ package rabbitmq
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"sync"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
+	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/gogf/gf/v2/util/gconv"
@@ -28,6 +30,10 @@ func (c *Consumer) Listen(ctx context.Context, exchangeType, exchangeName, routi
 			if exception := recover(); exception != nil {
 				g.Log().Errorf(ctx, "deliveryHandler panic, %+v", exception)
 				err = errcode.New(exception)
+			} else {
+				if err != nil {
+					g.Log().Error(ctx, gerror.Wrap(err, fmt.Sprintf("%s %s %s", delivery.Exchange, delivery.RoutingKey, delivery.Body)))
+				}
 			}
 		}()
 
