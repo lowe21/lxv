@@ -1,22 +1,22 @@
 module github.com/lowe21/lxv
 
-go 1.26
+go 1.27
 
 require (
 	dubbo.apache.org/dubbo-go/v3 v3.3.2
 	github.com/alibaba/sentinel-golang v1.0.4
 	github.com/apache/dubbo-go-hessian2 v1.12.5
 	github.com/go-redsync/redsync/v4 v4.17.0
-	github.com/gogf/gf/contrib/drivers/mysql/v2 v2.10.2
-	github.com/gogf/gf/contrib/nosql/redis/v2 v2.10.2
-	github.com/gogf/gf/contrib/trace/otlpgrpc/v2 v2.10.2
-	github.com/gogf/gf/v2 v2.10.2
+	github.com/gogf/gf/contrib/drivers/mysql/v2 v2.10.3
+	github.com/gogf/gf/contrib/nosql/redis/v2 v2.10.3
+	github.com/gogf/gf/contrib/trace/otlpgrpc/v2 v2.10.3
+	github.com/gogf/gf/v2 v2.10.3
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/gorilla/websocket v1.5.3
 	github.com/olekukonko/tablewriter v1.1.4
 	github.com/rabbitmq/amqp091-go v1.14.0
 	github.com/redis/go-redis/v9 v9.22.0
-	go.mongodb.org/mongo-driver/v2 v2.8.0
+	go.mongodb.org/mongo-driver/v2 v2.8.2
 	go.opentelemetry.io/otel v1.45.0
 	go.opentelemetry.io/otel/trace v1.45.0
 	google.golang.org/grpc v1.83.0
