@@ -8,24 +8,24 @@ import (
 )
 
 const (
-	defaultVhost             = "/"
-	defaultChannelMax        = 0
-	defaultFrameSize         = 0
-	defaultHeartbeat         = "30s"
-	defaultReconnectMax      = 10
-	defaultReconnectInterval = "5s"
-	defaultRetryMax          = 0
-	defaultRetryFactor       = 2
-	defaultRetryIntervalMin  = "3s"
-	defaultRetryIntervalMax  = "30s"
-	defaultConsumeConcurrent = 1
-	defaultConsumePrefetch   = 0
-	defaultConsumeDlxSuffix  = ".dlx"
+	vhost             = "/"
+	channelMax        = 0
+	frameSize         = 0
+	heartbeat         = "30s"
+	reconnectMax      = 10
+	reconnectInterval = "5s"
+	retryMax          = 0
+	retryFactor       = 2
+	retryIntervalMin  = "3s"
+	retryIntervalMax  = "30s"
+	consumeConcurrent = 1
+	consumePrefetch   = 0
+	consumeDLXSuffix  = ".dlx"
 )
 
 type Options struct {
 	Product           string
-	Uri               string
+	URI               string
 	Vhost             string
 	ChannelMax        int
 	FrameSize         int
@@ -38,7 +38,7 @@ type Options struct {
 	RetryIntervalMax  time.Duration
 	ConsumeConcurrent int
 	ConsumePrefetch   int
-	ConsumeDlxSuffix  string
+	ConsumeDLXSuffix  string
 }
 
 func defaultOptions() *Options {
@@ -50,47 +50,47 @@ func defaultOptions() *Options {
 	if options.Product == "" {
 		options.Product = g.Server().GetName()
 	}
-	if options.Uri == "" {
+	if options.URI == "" {
 		panic("options error, uri is empty")
 	}
 	if options.Vhost == "" {
-		options.Vhost = defaultVhost
+		options.Vhost = vhost
 	}
 	if options.ChannelMax < 0 {
-		options.ChannelMax = defaultChannelMax
+		options.ChannelMax = channelMax
 	}
 	if options.FrameSize < 0 {
-		options.FrameSize = defaultFrameSize
+		options.FrameSize = frameSize
 	}
 	if options.Heartbeat <= 0 {
-		options.Heartbeat = gconv.Duration(defaultHeartbeat)
+		options.Heartbeat = gconv.Duration(heartbeat)
 	}
 	if options.ReconnectMax <= 0 {
-		options.ReconnectMax = defaultReconnectMax
+		options.ReconnectMax = reconnectMax
 	}
 	if options.ReconnectInterval <= 0 {
-		options.ReconnectInterval = gconv.Duration(defaultReconnectInterval)
+		options.ReconnectInterval = gconv.Duration(reconnectInterval)
 	}
 	if options.RetryMax < 0 {
-		options.RetryMax = defaultRetryMax
+		options.RetryMax = retryMax
 	}
 	if options.RetryFactor <= 0 {
-		options.RetryFactor = defaultRetryFactor
+		options.RetryFactor = retryFactor
 	}
 	if options.RetryIntervalMin <= 0 {
-		options.RetryIntervalMin = gconv.Duration(defaultRetryIntervalMin)
+		options.RetryIntervalMin = gconv.Duration(retryIntervalMin)
 	}
 	if options.RetryIntervalMax <= 0 {
-		options.RetryIntervalMax = gconv.Duration(defaultRetryIntervalMax)
+		options.RetryIntervalMax = gconv.Duration(retryIntervalMax)
 	}
 	if options.ConsumeConcurrent <= 0 {
-		options.ConsumeConcurrent = defaultConsumeConcurrent
+		options.ConsumeConcurrent = consumeConcurrent
 	}
 	if options.ConsumePrefetch < 0 {
-		options.ConsumePrefetch = defaultConsumePrefetch
+		options.ConsumePrefetch = consumePrefetch
 	}
-	if options.ConsumeDlxSuffix == "" {
-		options.ConsumeDlxSuffix = defaultConsumeDlxSuffix
+	if options.ConsumeDLXSuffix == "" {
+		options.ConsumeDLXSuffix = consumeDLXSuffix
 	}
 
 	return options

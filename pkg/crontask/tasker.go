@@ -31,13 +31,13 @@ func GetTasker(name string) (tasker Tasker, err error) {
 }
 
 func SetTasker(tasker Tasker) {
-	mutex.Lock()
-	defer mutex.Unlock()
-
 	name := tasker.Name()
 	if name == "" {
 		panic(fmt.Sprintf("tasker name is empty, type: %T", tasker))
 	}
+
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	if taskers == nil {
 		taskers = make(map[string]Tasker)

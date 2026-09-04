@@ -28,12 +28,12 @@ func init() {
 type traceServerFilter struct{}
 
 func (t *traceServerFilter) Invoke(ctx context.Context, invoker base.Invoker, invocation base.Invocation) (res result.Result) {
-	traceId, _ := invocation.GetAttachment("trace-id")
-	if traceId == "" {
+	traceID, _ := invocation.GetAttachment("trace-id")
+	if traceID == "" {
 		return invoker.Invoke(ctx, invocation)
 	}
 
-	ctx, _ = gtrace.WithTraceID(ctx, traceId)
+	ctx, _ = gtrace.WithTraceID(ctx, traceID)
 	ctx, span := otel.Tracer("dubbo.apache.org/dubbo-go/v3", trace.WithInstrumentationVersion(constant.Version)).
 		Start(ctx, gstr.Join([]string{invoker.GetURL().Service(), invocation.MethodName()}, "."), trace.WithSpanKind(trace.SpanKindServer), trace.WithAttributes(gtrace.CommonLabels()...))
 	span.SetAttributes(

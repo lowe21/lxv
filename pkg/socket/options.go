@@ -9,29 +9,29 @@ import (
 )
 
 const (
-	defaultRedisGroup         = "default"
-	defaultRedisKeyPrefix     = "socket"
-	defaultRedisChannel       = "broadcast"
-	defaultNodeTtl            = "60s"
-	defaultNodeHeartbeat      = "20s"
-	defaultClientDefaultGroup = "default"
-	defaultInputQueueSize     = 64
-	defaultOutputQueueSize    = 64
-	defaultMessageMaxSize     = 512
-	defaultPingInterval       = "60s"
-	defaultPongTimeout        = "90s"
-	defaultWriteTimeout       = "10s"
+	redisGroup         = "default"
+	redisKeyPrefix     = "socket"
+	redisChannel       = "broadcast"
+	nodeTTL            = "60s"
+	nodeHeartbeat      = "20s"
+	defaultClientGroup = "default"
+	inputQueueSize     = 64
+	outputQueueSize    = 64
+	messageMaxSize     = 512
+	pingInterval       = "60s"
+	pongTimeout        = "90s"
+	writeTimeout       = "10s"
 )
 
 type Options struct {
 	RedisGroup         string
 	RedisKeyPrefix     string
 	RedisChannel       string
-	NodeId             string
-	NodeTtl            time.Duration
+	NodeID             string
+	NodeTTL            time.Duration
 	NodeHeartbeat      time.Duration
 	AllowedOrigins     []string
-	ClientDefaultGroup string
+	DefaultClientGroup string
 	InputQueueSize     int
 	OutputQueueSize    int
 	MessageMaxSize     int64
@@ -47,49 +47,49 @@ func defaultOptions() *Options {
 	}
 
 	if options.RedisGroup == "" {
-		options.RedisGroup = defaultRedisGroup
+		options.RedisGroup = redisGroup
 	}
 	if options.RedisKeyPrefix == "" {
-		options.RedisKeyPrefix = defaultRedisKeyPrefix
+		options.RedisKeyPrefix = redisKeyPrefix
 	}
 	if options.RedisChannel == "" {
-		options.RedisChannel = defaultRedisChannel
+		options.RedisChannel = redisChannel
 	}
-	if options.NodeId == "" {
-		options.NodeId = guid.S()
+	if options.NodeID == "" {
+		options.NodeID = guid.S()
 	}
-	if options.NodeTtl <= 0 {
-		options.NodeTtl = gconv.Duration(defaultNodeTtl)
+	if options.NodeTTL <= 0 {
+		options.NodeTTL = gconv.Duration(nodeTTL)
 	}
 	if options.NodeHeartbeat <= 0 {
-		options.NodeHeartbeat = gconv.Duration(defaultNodeHeartbeat)
+		options.NodeHeartbeat = gconv.Duration(nodeHeartbeat)
 	}
-	if options.NodeHeartbeat >= options.NodeTtl {
-		panic("options error, nodeHeartbeat must be less than nodeTtl")
+	if options.NodeHeartbeat >= options.NodeTTL {
+		panic("options error, nodeHeartbeat must be less than nodeTTL")
 	}
-	if options.ClientDefaultGroup == "" {
-		options.ClientDefaultGroup = defaultClientDefaultGroup
+	if options.DefaultClientGroup == "" {
+		options.DefaultClientGroup = defaultClientGroup
 	}
 	if options.InputQueueSize <= 0 {
-		options.InputQueueSize = defaultInputQueueSize
+		options.InputQueueSize = inputQueueSize
 	}
 	if options.OutputQueueSize <= 0 {
-		options.OutputQueueSize = defaultOutputQueueSize
+		options.OutputQueueSize = outputQueueSize
 	}
 	if options.MessageMaxSize <= 0 {
-		options.MessageMaxSize = defaultMessageMaxSize
+		options.MessageMaxSize = messageMaxSize
 	}
 	if options.PingInterval <= 0 {
-		options.PingInterval = gconv.Duration(defaultPingInterval)
+		options.PingInterval = gconv.Duration(pingInterval)
 	}
 	if options.PongTimeout <= 0 {
-		options.PongTimeout = gconv.Duration(defaultPongTimeout)
+		options.PongTimeout = gconv.Duration(pongTimeout)
 	}
 	if options.PongTimeout < options.PingInterval {
 		panic("options error, pongTimeout must be greater than or equal to pingInterval")
 	}
 	if options.WriteTimeout <= 0 {
-		options.WriteTimeout = gconv.Duration(defaultWriteTimeout)
+		options.WriteTimeout = gconv.Duration(writeTimeout)
 	}
 
 	return options

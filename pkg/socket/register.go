@@ -35,11 +35,11 @@ func (r *Register) Heartbeat(ctx context.Context) {
 }
 
 func (r *Register) AddNode(ctx context.Context) (err error) {
-	return r.redis.SetEX(ctx, r.nodeKey(), r.options.NodeId, int64(r.options.NodeTtl.Seconds()))
+	return r.redis.SetEX(ctx, r.nodeKey(), r.options.NodeID, int64(r.options.NodeTTL.Seconds()))
 }
 
 func (r *Register) RenewNode(ctx context.Context) (err error) {
-	if _, err = r.redis.Expire(ctx, r.nodeKey(), int64(r.options.NodeTtl.Seconds())); err != nil {
+	if _, err = r.redis.Expire(ctx, r.nodeKey(), int64(r.options.NodeTTL.Seconds())); err != nil {
 		return
 	}
 
@@ -55,5 +55,5 @@ func (r *Register) DeleteNode() (err error) {
 }
 
 func (r *Register) nodeKey() (key string) {
-	return gstr.Join([]string{r.options.RedisKeyPrefix, "node", r.options.NodeId}, ":")
+	return gstr.Join([]string{r.options.RedisKeyPrefix, "node", r.options.NodeID}, ":")
 }

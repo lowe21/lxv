@@ -5,18 +5,18 @@ import (
 )
 
 var (
-	cryptoRsa *CryptoRsa
+	cryptoRSA *CryptoRSA
 	once      sync.Once
 )
 
-func instance() *CryptoRsa {
+func instance() *CryptoRSA {
 	once.Do(func() {
-		cryptoRsa = &CryptoRsa{
+		cryptoRSA = &CryptoRSA{
 			options: defaultOptions(),
 		}
 	})
 
-	return cryptoRsa
+	return cryptoRSA
 }
 
 func Sign(privateKey, content string, opts ...Option) (sign string, err error) {

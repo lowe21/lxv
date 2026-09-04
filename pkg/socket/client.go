@@ -125,7 +125,7 @@ func (c *Client) handler() {
 		case message := <-c.input:
 			input := &Input{}
 			if err := gconv.Scan(message, input); err != nil {
-				c.Send(Message(input.Id, "error", errcode.New(errcode.ErrInvalidParam, "message body should be a json object format")))
+				c.Send(Message(input.ID, "error", errcode.New(errcode.ErrInvalidParam, "message body should be a json object format")))
 				continue
 			}
 
@@ -136,7 +136,7 @@ func (c *Client) handler() {
 						err = errcode.New(exception)
 					} else {
 						if err != nil {
-							g.Log().Error(c.ctx, gerror.Wrap(err, fmt.Sprintf("%s %s %s", input.Id, input.Event, input.Data)))
+							g.Log().Error(c.ctx, gerror.Wrap(err, fmt.Sprintf("%s %s %s", input.ID, input.Event, input.Data)))
 						}
 					}
 				}()
@@ -155,11 +155,11 @@ func (c *Client) handler() {
 					return
 				}
 
-				c.Send(Message(input.Id, input.Event, data))
+				c.Send(Message(input.ID, input.Event, data))
 
 				return
 			}(); err != nil {
-				c.Send(Message(input.Id, input.Event, err))
+				c.Send(Message(input.ID, input.Event, err))
 			}
 		case <-c.done:
 			return

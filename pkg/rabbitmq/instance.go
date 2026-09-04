@@ -8,26 +8,26 @@ import (
 )
 
 var (
-	rabbitMq *RabbitMq
+	rabbitMQ *RabbitMQ
 	once     sync.Once
 )
 
-func instance() *RabbitMq {
+func instance() *RabbitMQ {
 	once.Do(func() {
 		options := defaultOptions()
 
-		rabbitMq = &RabbitMq{
+		rabbitMQ = &RabbitMQ{
 			options: options,
 		}
-		rabbitMq.producer = &Producer{
-			RabbitMq: rabbitMq,
+		rabbitMQ.producer = &Producer{
+			RabbitMQ: rabbitMQ,
 		}
-		rabbitMq.consumer = &Consumer{
-			RabbitMq: rabbitMq,
+		rabbitMQ.consumer = &Consumer{
+			RabbitMQ: rabbitMQ,
 		}
 	})
 
-	return rabbitMq
+	return rabbitMQ
 }
 
 func Start() {

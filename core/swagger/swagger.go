@@ -51,9 +51,9 @@ func Init() {
 			}
 
 			openApi := server.GetOpenApi()
-			openApi.Config.CommonRequest = &common.ApiReq{}
+			openApi.Config.CommonRequest = &common.APIReq{}
 			openApi.Config.CommonRequestDataField = "Content"
-			openApi.Config.CommonResponse = &common.ApiRes{}
+			openApi.Config.CommonResponse = &common.APIRes{}
 			openApi.Config.CommonResponseDataField = "Data"
 			openApi.Info = goai.Info{
 				Title:       fmt.Sprintf("%s API Reference", server.GetName()),

@@ -31,13 +31,13 @@ func GetEvent(name string) (event Event, err error) {
 }
 
 func SetEvent(event Event) {
-	mutex.Lock()
-	defer mutex.Unlock()
-
 	name := event.Name()
 	if name == "" {
 		panic(fmt.Sprintf("event name is empty, type: %T", event))
 	}
+
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	if events == nil {
 		events = make(map[string]Event)

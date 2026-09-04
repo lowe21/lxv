@@ -6,11 +6,11 @@ import (
 	jwtv5 "github.com/golang-jwt/jwt/v5"
 )
 
-type Jwt struct {
+type JWT struct {
 	options *Options
 }
 
-func (j *Jwt) Generate(payload *Payload) (token string, expires time.Time, err error) {
+func (j *JWT) Generate(payload *Payload) (token string, expires time.Time, err error) {
 	now := time.Now()
 
 	claims := &Claims{
@@ -32,7 +32,7 @@ func (j *Jwt) Generate(payload *Payload) (token string, expires time.Time, err e
 	return
 }
 
-func (j *Jwt) Parse(token string, leeway bool) (payload *Payload, err error) {
+func (j *JWT) Parse(token string, leeway bool) (payload *Payload, err error) {
 	claims := &Claims{}
 	options := []jwtv5.ParserOption{jwtv5.WithIssuer(j.options.Issuer)}
 	if leeway {

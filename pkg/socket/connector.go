@@ -10,11 +10,11 @@ import (
 
 const (
 	addClientScript = `
-local nodeId = redis.call('HGET', KEYS[1], ARGV[1])
+local nodeID = redis.call('HGET', KEYS[1], ARGV[1])
 redis.call('HSET', KEYS[1], ARGV[1], ARGV[2])
 redis.call('HSET', KEYS[2], ARGV[1], 1)
 redis.call('EXPIRE', KEYS[2], ARGV[3])
-return nodeId
+return nodeID
 `
 
 	deleteClientScript = `
@@ -30,11 +30,11 @@ return deleted
 	deleteNodeClientScript = `
 local deleted = 0
 for i = 1, #ARGV, 2 do
-    local clientId = ARGV[i]
-    local nodeId = ARGV[i + 1]
-    if redis.call('HGET', KEYS[1], clientId) == nodeId then
-        redis.call('HDEL', KEYS[1], clientId)
-        redis.call('HDEL', KEYS[2], clientId)
+    local clientID = ARGV[i]
+    local nodeID = ARGV[i + 1]
+    if redis.call('HGET', KEYS[1], clientID) == nodeID then
+        redis.call('HDEL', KEYS[1], clientID)
+        redis.call('HDEL', KEYS[2], clientID)
         deleted = deleted + 1
     end
 end
@@ -48,11 +48,11 @@ type Connector struct {
 	mutex   sync.RWMutex
 }
 
-func (c *Connector) GetClient(clientId string, group ...string) (client *Client) {
+func (c *Connector) GetClient(clientID string, group ...string) (client *Client) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 
-	return c.clients[c.groupName(group...)][clientId]
+	return c.clients[c.groupName(group...)][clientID]
 }
 
 func (c *Connector) GetClients(group ...string) (clients map[string]*Client) {
@@ -71,19 +71,19 @@ func (c *Connector) GetClients(group ...string) (clients map[string]*Client) {
 func (c *Connector) AddClient(ctx context.Context, client *Client) (err error) {
 	data, err := c.redis.Eval(ctx, addClientScript, 2, []string{
 		c.groupKey(client.group),
-		c.groupNodeKey(c.options.NodeId, client.group),
+		c.groupNodeKey(c.options.NodeID, client.group),
 	}, []any{
 		client.id,
-		c.options.NodeId,
-		int64(c.options.NodeTtl.Seconds()),
+		c.options.NodeID,
+		int64(c.options.NodeTTL.Seconds()),
 	})
 	if err != nil {
 		return
 	}
 
-	nodeId := data.String()
-	if nodeId != "" && nodeId != c.options.NodeId {
-		if err := c.broadcaster.CloseClient(ctx, []byte("already connected elsewhere"), nodeId, []string{client.id}, client.group); err != nil {
+	nodeID := data.String()
+	if nodeID != "" && nodeID != c.options.NodeID {
+		if err := c.broadcaster.CloseClient(ctx, []byte("already connected elsewhere"), nodeID, []string{client.id}, client.group); err != nil {
 			g.Log().Errorf(ctx, "close client error, %v", err)
 		}
 	}
@@ -108,7 +108,7 @@ func (c *Connector) AddClient(ctx context.Context, client *Client) (err error) {
 }
 
 func (c *Connector) RenewClients(ctx context.Context, group string) (err error) {
-	if _, err = c.redis.Expire(ctx, c.groupNodeKey(c.options.NodeId, group), int64(c.options.NodeTtl.Seconds())); err != nil {
+	if _, err = c.redis.Expire(ctx, c.groupNodeKey(c.options.NodeID, group), int64(c.options.NodeTTL.Seconds())); err != nil {
 		return
 	}
 
@@ -132,10 +132,10 @@ func (c *Connector) DeleteClient(client *Client) (err error) {
 	if isDeleted {
 		if _, err = c.redis.Eval(context.Background(), deleteClientScript, 2, []string{
 			c.groupKey(client.group),
-			c.groupNodeKey(c.options.NodeId, client.group),
+			c.groupNodeKey(c.options.NodeID, client.group),
 		}, []any{
 			client.id,
-			c.options.NodeId,
+			c.options.NodeID,
 		}); err != nil {
 			return
 		}
@@ -156,8 +156,8 @@ func (c *Connector) GetGroups() (groups []string) {
 	return
 }
 
-func (c *Connector) GetNodeIds(ctx context.Context, clientIds []string, group ...string) (nodeIds []string, err error) {
-	data, err := c.redis.HMGet(ctx, c.groupKey(group...), clientIds...)
+func (c *Connector) GetNodeIDs(ctx context.Context, clientIDs []string, group ...string) (nodeIDs []string, err error) {
+	data, err := c.redis.HMGet(ctx, c.groupKey(group...), clientIDs...)
 	if err != nil {
 		return
 	}
@@ -165,33 +165,33 @@ func (c *Connector) GetNodeIds(ctx context.Context, clientIds []string, group ..
 	return data.Strings(), nil
 }
 
-func (c *Connector) GetNodeActiveClientIds(ctx context.Context, nodeId string, clientIds []string, group ...string) (activeClientIds []string, err error) {
-	data, err := c.redis.HMGet(ctx, c.groupNodeKey(nodeId, group...), clientIds...)
+func (c *Connector) GetNodeActiveClientIDs(ctx context.Context, nodeID string, clientIDs []string, group ...string) (activeClientIDs []string, err error) {
+	data, err := c.redis.HMGet(ctx, c.groupNodeKey(nodeID, group...), clientIDs...)
 	if err != nil {
 		return
 	}
 
 	values := data.Strings()
 
-	activeClientIds = make([]string, 0, len(clientIds))
-	for index, clientId := range clientIds {
+	activeClientIDs = make([]string, 0, len(clientIDs))
+	for index, clientID := range clientIDs {
 		if index < len(values) && values[index] != "" {
-			activeClientIds = append(activeClientIds, clientId)
+			activeClientIDs = append(activeClientIDs, clientID)
 		}
 	}
 
 	return
 }
 
-func (c *Connector) DeleteNodeClients(ctx context.Context, nodeId string, clientIds []string, group ...string) (err error) {
-	args := make([]any, 0, len(clientIds))
-	for _, clientId := range clientIds {
-		args = append(args, clientId, nodeId)
+func (c *Connector) DeleteNodeClients(ctx context.Context, nodeID string, clientIDs []string, group ...string) (err error) {
+	args := make([]any, 0, len(clientIDs))
+	for _, clientID := range clientIDs {
+		args = append(args, clientID, nodeID)
 	}
 
 	if _, err = c.redis.Eval(ctx, deleteNodeClientScript, 2, []string{
 		c.groupKey(group...),
-		c.groupNodeKey(nodeId, group...),
+		c.groupNodeKey(nodeID, group...),
 	}, args); err != nil {
 		return
 	}
@@ -200,7 +200,7 @@ func (c *Connector) DeleteNodeClients(ctx context.Context, nodeId string, client
 }
 
 func (c *Connector) groupName(group ...string) (name string) {
-	name = c.options.ClientDefaultGroup
+	name = c.options.DefaultClientGroup
 	if len(group) > 0 && group[0] != "" {
 		name = group[0]
 	}
@@ -212,6 +212,6 @@ func (c *Connector) groupKey(group ...string) (key string) {
 	return gstr.Join([]string{c.options.RedisKeyPrefix, "client", c.groupName(group...)}, ":")
 }
 
-func (c *Connector) groupNodeKey(nodeId string, group ...string) (key string) {
-	return gstr.Join([]string{c.options.RedisKeyPrefix, "client", c.groupName(group...), "node", nodeId}, ":")
+func (c *Connector) groupNodeKey(nodeID string, group ...string) (key string) {
+	return gstr.Join([]string{c.options.RedisKeyPrefix, "client", c.groupName(group...), "node", nodeID}, ":")
 }

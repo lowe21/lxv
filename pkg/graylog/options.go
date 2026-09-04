@@ -8,12 +8,12 @@ import (
 )
 
 const (
-	defaultAddress           = "127.0.0.1:12201"
-	defaultChunkSize         = 8192
-	defaultQueueSize         = 32
-	defaultWorkerNumber      = 1
-	defaultReconnectInterval = "5s"
-	defaultVersion           = "1.1"
+	address           = "127.0.0.1:12201"
+	chunkSize         = 8192
+	queueSize         = 32
+	workerNumber      = 1
+	reconnectInterval = "5s"
+	version           = "1.1"
 )
 
 type Options struct {
@@ -32,22 +32,22 @@ func defaultOptions() *Options {
 	}
 
 	if options.Address == "" {
-		options.Address = defaultAddress
+		options.Address = address
 	}
 	if options.ChunkSize <= 0 {
-		options.ChunkSize = defaultChunkSize
+		options.ChunkSize = chunkSize
 	}
 	if options.QueueSize <= 0 {
-		options.QueueSize = defaultQueueSize
+		options.QueueSize = queueSize
 	}
 	if options.WorkerNumber <= 0 {
-		options.WorkerNumber = defaultWorkerNumber
+		options.WorkerNumber = workerNumber
 	}
 	if options.ReconnectInterval <= 0 {
-		options.ReconnectInterval = gconv.Duration(defaultReconnectInterval)
+		options.ReconnectInterval = gconv.Duration(reconnectInterval)
 	}
 	if options.Version == "" {
-		options.Version = defaultVersion
+		options.Version = version
 	}
 
 	return options

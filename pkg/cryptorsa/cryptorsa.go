@@ -28,11 +28,11 @@ const (
 	SHA512PSS = "sha512-pss"
 )
 
-type CryptoRsa struct {
+type CryptoRSA struct {
 	options *Options
 }
 
-func (c *CryptoRsa) Sign(privateKey, content string, opts ...Option) (sign string, err error) {
+func (c *CryptoRSA) Sign(privateKey, content string, opts ...Option) (sign string, err error) {
 	key, err := c.parsePrivateKey(privateKey)
 	if err != nil {
 		return
@@ -64,7 +64,7 @@ func (c *CryptoRsa) Sign(privateKey, content string, opts ...Option) (sign strin
 	return gbase64.EncodeToString(signed), nil
 }
 
-func (c *CryptoRsa) Verify(publicKey, content, sign string, opts ...Option) (err error) {
+func (c *CryptoRSA) Verify(publicKey, content, sign string, opts ...Option) (err error) {
 	key, err := c.parsePublicKey(publicKey)
 	if err != nil {
 		return
@@ -103,7 +103,7 @@ func (c *CryptoRsa) Verify(publicKey, content, sign string, opts ...Option) (err
 	return rsa.VerifyPKCS1v15(key, hash, bytes, signed)
 }
 
-func (c *CryptoRsa) parsePrivateKey(privateKey string) (key *rsa.PrivateKey, err error) {
+func (c *CryptoRSA) parsePrivateKey(privateKey string) (key *rsa.PrivateKey, err error) {
 	der, pemType, err := c.decodeKey(privateKey)
 	if err != nil {
 		return
@@ -136,7 +136,7 @@ func (c *CryptoRsa) parsePrivateKey(privateKey string) (key *rsa.PrivateKey, err
 	return
 }
 
-func (c *CryptoRsa) parsePublicKey(publicKey string) (key *rsa.PublicKey, err error) {
+func (c *CryptoRSA) parsePublicKey(publicKey string) (key *rsa.PublicKey, err error) {
 	der, pemType, err := c.decodeKey(publicKey)
 	if err != nil {
 		return
@@ -169,7 +169,7 @@ func (c *CryptoRsa) parsePublicKey(publicKey string) (key *rsa.PublicKey, err er
 	return
 }
 
-func (c *CryptoRsa) decodeKey(key string) (der []byte, pemType string, err error) {
+func (c *CryptoRSA) decodeKey(key string) (der []byte, pemType string, err error) {
 	key = gstr.Trim(key)
 	if key == "" {
 		err = errcode.New("RSA key is empty")
@@ -199,11 +199,11 @@ func (c *CryptoRsa) decodeKey(key string) (der []byte, pemType string, err error
 	return
 }
 
-func (c *CryptoRsa) parsePKCS1PrivateKey(der []byte) (key *rsa.PrivateKey, err error) {
+func (c *CryptoRSA) parsePKCS1PrivateKey(der []byte) (key *rsa.PrivateKey, err error) {
 	return x509.ParsePKCS1PrivateKey(der)
 }
 
-func (c *CryptoRsa) parsePKCS8PrivateKey(der []byte) (key *rsa.PrivateKey, err error) {
+func (c *CryptoRSA) parsePKCS8PrivateKey(der []byte) (key *rsa.PrivateKey, err error) {
 	parsed, err := x509.ParsePKCS8PrivateKey(der)
 	if err != nil {
 		return
@@ -217,11 +217,11 @@ func (c *CryptoRsa) parsePKCS8PrivateKey(der []byte) (key *rsa.PrivateKey, err e
 	return
 }
 
-func (c *CryptoRsa) parsePKCS1PublicKey(der []byte) (key *rsa.PublicKey, err error) {
+func (c *CryptoRSA) parsePKCS1PublicKey(der []byte) (key *rsa.PublicKey, err error) {
 	return x509.ParsePKCS1PublicKey(der)
 }
 
-func (c *CryptoRsa) parsePKIXPublicKey(der []byte) (key *rsa.PublicKey, err error) {
+func (c *CryptoRSA) parsePKIXPublicKey(der []byte) (key *rsa.PublicKey, err error) {
 	parsed, err := x509.ParsePKIXPublicKey(der)
 	if err != nil {
 		return
@@ -235,7 +235,7 @@ func (c *CryptoRsa) parsePKIXPublicKey(der []byte) (key *rsa.PublicKey, err erro
 	return
 }
 
-func (c *CryptoRsa) parseCertificatePublicKey(der []byte) (key *rsa.PublicKey, err error) {
+func (c *CryptoRSA) parseCertificatePublicKey(der []byte) (key *rsa.PublicKey, err error) {
 	parsed, err := x509.ParseCertificate(der)
 	if err != nil {
 		return
@@ -249,7 +249,7 @@ func (c *CryptoRsa) parseCertificatePublicKey(der []byte) (key *rsa.PublicKey, e
 	return
 }
 
-func (c *CryptoRsa) verifyPrivateKey(key *rsa.PrivateKey) (err error) {
+func (c *CryptoRSA) verifyPrivateKey(key *rsa.PrivateKey) (err error) {
 	if key == nil {
 		return errcode.New("RSA private key is nil")
 	}
@@ -269,7 +269,7 @@ func (c *CryptoRsa) verifyPrivateKey(key *rsa.PrivateKey) (err error) {
 	return
 }
 
-func (c *CryptoRsa) verifyPublicKey(key *rsa.PublicKey) (err error) {
+func (c *CryptoRSA) verifyPublicKey(key *rsa.PublicKey) (err error) {
 	if key == nil {
 		return errcode.New("RSA public key is nil")
 	}
@@ -285,7 +285,7 @@ func (c *CryptoRsa) verifyPublicKey(key *rsa.PublicKey) (err error) {
 	return
 }
 
-func (c *CryptoRsa) hash(opts ...Option) (hash crypto.Hash, pss bool, err error) {
+func (c *CryptoRSA) hash(opts ...Option) (hash crypto.Hash, pss bool, err error) {
 	options := *c.options
 	for _, opt := range opts {
 		if opt != nil {
@@ -315,7 +315,7 @@ func (c *CryptoRsa) hash(opts ...Option) (hash crypto.Hash, pss bool, err error)
 	return
 }
 
-func (c *CryptoRsa) hashSum(hash crypto.Hash, content string) (bytes []byte, err error) {
+func (c *CryptoRSA) hashSum(hash crypto.Hash, content string) (bytes []byte, err error) {
 	if !hash.Available() {
 		err = errcode.New("RSA hash algorithm is not available")
 		return

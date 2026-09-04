@@ -66,16 +66,16 @@ func Start() {
 	instance().Start()
 }
 
-func Connect(request *ghttp.Request, clientId string, group ...string) (err error) {
-	return instance().Connect(request, clientId, group...)
+func Connect(request *ghttp.Request, clientID string, group ...string) (err error) {
+	return instance().Connect(request, clientID, group...)
 }
 
-func Notice(ctx context.Context, message []byte, clientIds []string, group ...string) (err error) {
-	return instance().broadcaster.Notice(ctx, message, clientIds, group...)
+func Notice(ctx context.Context, message []byte, clientIDs []string, group ...string) (err error) {
+	return instance().broadcaster.Notice(ctx, message, clientIDs, group...)
 }
 
-func CloseClient(ctx context.Context, message []byte, clientIds []string, group ...string) (err error) {
-	return instance().broadcaster.CloseClient(ctx, message, "", clientIds, group...)
+func CloseClient(ctx context.Context, message []byte, clientIDs []string, group ...string) (err error) {
+	return instance().broadcaster.CloseClient(ctx, message, "", clientIDs, group...)
 }
 
 func Stop() {

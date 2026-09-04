@@ -1,4 +1,4 @@
-package log_center
+package logcenter
 
 import (
 	"context"

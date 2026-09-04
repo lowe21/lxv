@@ -9,7 +9,7 @@ import (
 )
 
 type Producer struct {
-	*RabbitMq
+	*RabbitMQ
 }
 
 func (p *Producer) Publish(ctx context.Context, exchangeName, routingKey string, body []byte, opts ...ProducerOption) (err error) {

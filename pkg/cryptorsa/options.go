@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	defaultHash       = SHA256
-	defaultMinKeyBits = 2048
+	hash       = SHA256
+	minKeyBits = 2048
 )
 
 type Options struct {
@@ -21,10 +21,10 @@ func defaultOptions() *Options {
 	}
 
 	if options.Hash == "" {
-		options.Hash = defaultHash
+		options.Hash = hash
 	}
 	if options.MinKeyBits <= 0 {
-		options.MinKeyBits = defaultMinKeyBits
+		options.MinKeyBits = minKeyBits
 	}
 
 	return options

@@ -1,4 +1,4 @@
-package config_center
+package configcenter
 
 import (
 	"sync"

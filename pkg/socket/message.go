@@ -8,12 +8,12 @@ import (
 
 type (
 	Input struct {
-		Id    string `json:"id"    valid:"required"`
+		ID    string `json:"id"    valid:"required"`
 		Event string `json:"event" valid:"required"`
 		Data  any    `json:"data"`
 	}
 	Output struct {
-		Id      string `json:"id"`
+		ID      string `json:"id"`
 		Event   string `json:"event"`
 		Code    string `json:"code"`
 		Message string `json:"message"`
@@ -38,7 +38,7 @@ func Message(id, event string, args ...any) []byte {
 	}
 
 	return gjson.MustEncode(&Output{
-		Id:      id,
+		ID:      id,
 		Event:   event,
 		Code:    subCode,
 		Message: message,

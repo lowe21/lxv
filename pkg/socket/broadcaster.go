@@ -17,9 +17,9 @@ const (
 
 type Broadcast struct {
 	Event        string   `json:"event"`
-	SourceNodeId string   `json:"sourceNodeId"`
-	TargetNodeId string   `json:"targetNodeId"`
-	ClientIds    []string `json:"clientIds"`
+	SourceNodeID string   `json:"sourceNodeID"`
+	TargetNodeID string   `json:"targetNodeID"`
+	ClientIDs    []string `json:"clientIDs"`
 	Group        string   `json:"group"`
 	Message      []byte   `json:"message"`
 }
@@ -56,18 +56,18 @@ func (b *Broadcaster) Subscribe(ctx context.Context) {
 					g.Log().Errorf(ctx, "receive message error, %v", err)
 					continue
 				}
-				if broadcast.SourceNodeId == b.options.NodeId && broadcast.TargetNodeId == "" {
+				if broadcast.SourceNodeID == b.options.NodeID && broadcast.TargetNodeID == "" {
 					continue
 				}
-				if broadcast.TargetNodeId != "" && broadcast.TargetNodeId != b.options.NodeId {
+				if broadcast.TargetNodeID != "" && broadcast.TargetNodeID != b.options.NodeID {
 					continue
 				}
 
 				switch broadcast.Event {
 				case eventNotice:
-					if len(broadcast.ClientIds) > 0 {
-						for _, clientId := range broadcast.ClientIds {
-							if client := b.connector.GetClient(clientId, broadcast.Group); client != nil {
+					if len(broadcast.ClientIDs) > 0 {
+						for _, clientID := range broadcast.ClientIDs {
+							if client := b.connector.GetClient(clientID, broadcast.Group); client != nil {
 								client.TrySend(broadcast.Message)
 							}
 						}
@@ -77,9 +77,9 @@ func (b *Broadcaster) Subscribe(ctx context.Context) {
 						}
 					}
 				case eventCloseClient:
-					if len(broadcast.ClientIds) > 0 {
-						for _, clientId := range broadcast.ClientIds {
-							if client := b.connector.GetClient(clientId, broadcast.Group); client != nil {
+					if len(broadcast.ClientIDs) > 0 {
+						for _, clientID := range broadcast.ClientIDs {
+							if client := b.connector.GetClient(clientID, broadcast.Group); client != nil {
 								client.Close(broadcast.Message)
 							}
 						}
@@ -100,68 +100,68 @@ func (b *Broadcaster) Subscribe(ctx context.Context) {
 	}
 }
 
-func (b *Broadcaster) Notice(ctx context.Context, message []byte, clientIds []string, group ...string) (err error) {
-	if len(clientIds) > 0 {
-		clientIdsArray := garray.NewStrArrayFrom(clientIds)
-		clientIdsArray.FilterEmpty()
-		clientIdsArray.Unique()
+func (b *Broadcaster) Notice(ctx context.Context, message []byte, clientIDs []string, group ...string) (err error) {
+	if len(clientIDs) > 0 {
+		clientIDsArray := garray.NewStrArrayFrom(clientIDs)
+		clientIDsArray.FilterEmpty()
+		clientIDsArray.Unique()
 
-		pendingClientIds := make([]string, 0, clientIdsArray.Len())
-		for _, clientId := range clientIdsArray.Slice() {
-			if client := b.connector.GetClient(clientId, group...); client != nil {
+		pendingClientIDs := make([]string, 0, clientIDsArray.Len())
+		for _, clientID := range clientIDsArray.Slice() {
+			if client := b.connector.GetClient(clientID, group...); client != nil {
 				client.TrySend(message)
 				continue
 			}
-			pendingClientIds = append(pendingClientIds, clientId)
+			pendingClientIDs = append(pendingClientIDs, clientID)
 		}
 
-		if len(pendingClientIds) > 0 {
-			targetNodeIds, err := b.connector.GetNodeIds(ctx, pendingClientIds, group...)
+		if len(pendingClientIDs) > 0 {
+			targetNodeIDs, err := b.connector.GetNodeIDs(ctx, pendingClientIDs, group...)
 			if err != nil {
 				return err
 			}
 
-			routes := make(map[string][]string, len(targetNodeIds))
-			for index, clientId := range pendingClientIds {
-				if index >= len(targetNodeIds) {
+			routes := make(map[string][]string, len(targetNodeIDs))
+			for index, clientID := range pendingClientIDs {
+				if index >= len(targetNodeIDs) {
 					continue
 				}
-				if targetNodeId := targetNodeIds[index]; targetNodeId != "" {
-					routes[targetNodeId] = append(routes[targetNodeId], clientId)
+				if targetNodeID := targetNodeIDs[index]; targetNodeID != "" {
+					routes[targetNodeID] = append(routes[targetNodeID], clientID)
 				}
 			}
 
-			for targetNodeId, targetClientIds := range routes {
-				activeClientIds, err := b.connector.GetNodeActiveClientIds(ctx, targetNodeId, targetClientIds, group...)
+			for targetNodeID, targetClientIDs := range routes {
+				activeClientIDs, err := b.connector.GetNodeActiveClientIDs(ctx, targetNodeID, targetClientIDs, group...)
 				if err != nil {
-					activeClientIds = targetClientIds
+					activeClientIDs = targetClientIDs
 				}
 
-				staleClientIds := make([]string, 0, len(targetClientIds))
-				for _, targetClientId := range targetClientIds {
+				staleClientIDs := make([]string, 0, len(targetClientIDs))
+				for _, targetClientID := range targetClientIDs {
 					isStaled := true
-					for _, activeClientId := range activeClientIds {
-						if activeClientId == targetClientId {
+					for _, activeClientID := range activeClientIDs {
+						if activeClientID == targetClientID {
 							isStaled = false
 						}
 					}
 					if isStaled {
-						staleClientIds = append(staleClientIds, targetClientId)
+						staleClientIDs = append(staleClientIDs, targetClientID)
 					}
 				}
 
-				if len(staleClientIds) > 0 {
-					if err := b.connector.DeleteNodeClients(ctx, targetNodeId, staleClientIds, group...); err != nil {
+				if len(staleClientIDs) > 0 {
+					if err := b.connector.DeleteNodeClients(ctx, targetNodeID, staleClientIDs, group...); err != nil {
 						g.Log().Errorf(ctx, "delete node clients error, %v", err)
 					}
 				}
 
-				if len(activeClientIds) > 0 {
+				if len(activeClientIDs) > 0 {
 					if _, err = b.redis.GroupPubSub().Publish(ctx, b.channelKey(), &Broadcast{
 						Event:        eventNotice,
-						SourceNodeId: b.options.NodeId,
-						TargetNodeId: targetNodeId,
-						ClientIds:    activeClientIds,
+						SourceNodeID: b.options.NodeID,
+						TargetNodeID: targetNodeID,
+						ClientIDs:    activeClientIDs,
 						Group:        b.connector.groupName(group...),
 						Message:      message,
 					}); err != nil {
@@ -177,7 +177,7 @@ func (b *Broadcaster) Notice(ctx context.Context, message []byte, clientIds []st
 
 		if _, err = b.redis.GroupPubSub().Publish(ctx, b.channelKey(), &Broadcast{
 			Event:        eventNotice,
-			SourceNodeId: b.options.NodeId,
+			SourceNodeID: b.options.NodeID,
 			Group:        b.connector.groupName(group...),
 			Message:      message,
 		}); err != nil {
@@ -188,55 +188,55 @@ func (b *Broadcaster) Notice(ctx context.Context, message []byte, clientIds []st
 	return
 }
 
-func (b *Broadcaster) CloseClient(ctx context.Context, message []byte, nodeId string, clientIds []string, group ...string) (err error) {
-	if nodeId != "" {
+func (b *Broadcaster) CloseClient(ctx context.Context, message []byte, nodeID string, clientIDs []string, group ...string) (err error) {
+	if nodeID != "" {
 		if _, err = b.redis.GroupPubSub().Publish(ctx, b.channelKey(), &Broadcast{
 			Event:        eventCloseClient,
-			SourceNodeId: b.options.NodeId,
-			TargetNodeId: nodeId,
-			ClientIds:    clientIds,
+			SourceNodeID: b.options.NodeID,
+			TargetNodeID: nodeID,
+			ClientIDs:    clientIDs,
 			Group:        b.connector.groupName(group...),
 			Message:      message,
 		}); err != nil {
 			return
 		}
 	} else {
-		if len(clientIds) > 0 {
-			clientIdsArray := garray.NewStrArrayFrom(clientIds)
-			clientIdsArray.FilterEmpty()
-			clientIdsArray.Unique()
+		if len(clientIDs) > 0 {
+			clientIDsArray := garray.NewStrArrayFrom(clientIDs)
+			clientIDsArray.FilterEmpty()
+			clientIDsArray.Unique()
 
-			pendingClientIds := make([]string, 0, clientIdsArray.Len())
-			for _, clientId := range clientIdsArray.Slice() {
-				if client := b.connector.GetClient(clientId, group...); client != nil {
+			pendingClientIDs := make([]string, 0, clientIDsArray.Len())
+			for _, clientID := range clientIDsArray.Slice() {
+				if client := b.connector.GetClient(clientID, group...); client != nil {
 					client.Close(message)
 					continue
 				}
-				pendingClientIds = append(pendingClientIds, clientId)
+				pendingClientIDs = append(pendingClientIDs, clientID)
 			}
 
-			if len(pendingClientIds) > 0 {
-				targetNodeIds, err := b.connector.GetNodeIds(ctx, pendingClientIds, group...)
+			if len(pendingClientIDs) > 0 {
+				targetNodeIDs, err := b.connector.GetNodeIDs(ctx, pendingClientIDs, group...)
 				if err != nil {
 					return err
 				}
 
-				routes := make(map[string][]string, len(targetNodeIds))
-				for index, clientId := range pendingClientIds {
-					if index >= len(targetNodeIds) {
+				routes := make(map[string][]string, len(targetNodeIDs))
+				for index, clientID := range pendingClientIDs {
+					if index >= len(targetNodeIDs) {
 						continue
 					}
-					if targetNodeId := targetNodeIds[index]; targetNodeId != "" {
-						routes[targetNodeId] = append(routes[targetNodeId], clientId)
+					if targetNodeID := targetNodeIDs[index]; targetNodeID != "" {
+						routes[targetNodeID] = append(routes[targetNodeID], clientID)
 					}
 				}
 
-				for targetNodeId, targetClientIds := range routes {
+				for targetNodeID, targetClientIDs := range routes {
 					if _, err = b.redis.GroupPubSub().Publish(ctx, b.channelKey(), &Broadcast{
 						Event:        eventCloseClient,
-						SourceNodeId: b.options.NodeId,
-						TargetNodeId: targetNodeId,
-						ClientIds:    targetClientIds,
+						SourceNodeID: b.options.NodeID,
+						TargetNodeID: targetNodeID,
+						ClientIDs:    targetClientIDs,
 						Group:        b.connector.groupName(group...),
 						Message:      message,
 					}); err != nil {
@@ -251,7 +251,7 @@ func (b *Broadcaster) CloseClient(ctx context.Context, message []byte, nodeId st
 
 			if _, err = b.redis.GroupPubSub().Publish(ctx, b.channelKey(), &Broadcast{
 				Event:        eventCloseClient,
-				SourceNodeId: b.options.NodeId,
+				SourceNodeID: b.options.NodeID,
 				Group:        b.connector.groupName(group...),
 				Message:      message,
 			}); err != nil {

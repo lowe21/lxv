@@ -6,13 +6,13 @@ import (
 )
 
 var (
-	jwt  *Jwt
+	jwt  *JWT
 	once sync.Once
 )
 
-func instance() *Jwt {
+func instance() *JWT {
 	once.Do(func() {
-		jwt = &Jwt{
+		jwt = &JWT{
 			options: defaultOptions(),
 		}
 	})

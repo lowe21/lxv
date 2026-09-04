@@ -15,7 +15,7 @@ import (
 	"github.com/gogf/gf/v2/text/gstr"
 )
 
-type RabbitMq struct {
+type RabbitMQ struct {
 	options    *Options
 	connection *amqp.Connection
 	producer   *Producer
@@ -26,7 +26,7 @@ type RabbitMq struct {
 	once       sync.Once
 }
 
-func (r *RabbitMq) Start() {
+func (r *RabbitMQ) Start() {
 	r.once.Do(func() {
 		r.ctx, r.cancel = context.WithCancel(context.Background())
 
@@ -76,7 +76,7 @@ func (r *RabbitMq) Start() {
 	})
 }
 
-func (r *RabbitMq) Connection() (connection *amqp.Connection, err error) {
+func (r *RabbitMQ) Connection() (connection *amqp.Connection, err error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -84,7 +84,7 @@ func (r *RabbitMq) Connection() (connection *amqp.Connection, err error) {
 		properties := amqp.NewConnectionProperties()
 		properties["product"] = r.options.Product
 
-		r.connection, err = amqp.DialConfig(r.options.Uri, amqp.Config{
+		r.connection, err = amqp.DialConfig(r.options.URI, amqp.Config{
 			Vhost:      r.options.Vhost,
 			ChannelMax: uint16(r.options.ChannelMax),
 			FrameSize:  r.options.FrameSize,
@@ -105,7 +105,7 @@ func (r *RabbitMq) Connection() (connection *amqp.Connection, err error) {
 	return r.connection, nil
 }
 
-func (r *RabbitMq) Channel() (channel *amqp.Channel, err error) {
+func (r *RabbitMQ) Channel() (channel *amqp.Channel, err error) {
 	connection, err := r.Connection()
 	if err != nil {
 		return
@@ -114,7 +114,7 @@ func (r *RabbitMq) Channel() (channel *amqp.Channel, err error) {
 	return connection.Channel()
 }
 
-func (r *RabbitMq) ExchangeName(exchangeName string) (name string) {
+func (r *RabbitMQ) ExchangeName(exchangeName string) (name string) {
 	if r.options.Product != "" && exchangeName != "" {
 		return gstr.Join([]string{r.options.Product, exchangeName}, ".")
 	}
@@ -122,7 +122,7 @@ func (r *RabbitMq) ExchangeName(exchangeName string) (name string) {
 	return exchangeName
 }
 
-func (r *RabbitMq) RoutingKey(routingKey, suffix string) (key string) {
+func (r *RabbitMQ) RoutingKey(routingKey, suffix string) (key string) {
 	if routingKey != "" && suffix != "" {
 		return gstr.Join([]string{routingKey, suffix}, "")
 	}
@@ -130,7 +130,7 @@ func (r *RabbitMq) RoutingKey(routingKey, suffix string) (key string) {
 	return routingKey
 }
 
-func (r *RabbitMq) QueueName(exchangeName, routingKey string, suffix ...string) (name string) {
+func (r *RabbitMQ) QueueName(exchangeName, routingKey string, suffix ...string) (name string) {
 	defer func() {
 		if name != "" {
 			name = gstr.Join(append([]string{name}, suffix...), "")
@@ -144,7 +144,7 @@ func (r *RabbitMq) QueueName(exchangeName, routingKey string, suffix ...string) 
 	return routingKey
 }
 
-func (r *RabbitMq) QueueCreate(channel *amqp.Channel, exchangeType, exchangeName, routingKey string, exclusive bool, args amqp.Table) (queue amqp.Queue, err error) {
+func (r *RabbitMQ) QueueCreate(channel *amqp.Channel, exchangeType, exchangeName, routingKey string, exclusive bool, args amqp.Table) (queue amqp.Queue, err error) {
 	exchangeName = r.ExchangeName(exchangeName)
 
 	if err = channel.ExchangeDeclare(exchangeName, "x-delayed-message", true, false, false, false, amqp.Table{
@@ -164,20 +164,20 @@ func (r *RabbitMq) QueueCreate(channel *amqp.Channel, exchangeType, exchangeName
 	return
 }
 
-func (r *RabbitMq) QueueDelete(channel *amqp.Channel, exchangeName, routingKey string) (err error) {
+func (r *RabbitMQ) QueueDelete(channel *amqp.Channel, exchangeName, routingKey string) (err error) {
 	exchangeName = r.ExchangeName(exchangeName)
 
 	if _, err = channel.QueueDelete(r.QueueName(exchangeName, routingKey), false, false, false); err != nil {
 		return
 	}
-	if _, err = channel.QueueDelete(r.QueueName(exchangeName, routingKey, r.options.ConsumeDlxSuffix), false, false, false); err != nil {
+	if _, err = channel.QueueDelete(r.QueueName(exchangeName, routingKey, r.options.ConsumeDLXSuffix), false, false, false); err != nil {
 		return
 	}
 
 	return
 }
 
-func (r *RabbitMq) Stop() {
+func (r *RabbitMQ) Stop() {
 	if r.cancel != nil {
 		r.cancel()
 	}

@@ -22,7 +22,7 @@ var streamType = gset.NewFrom([]string{
 	"multipart/x-mixed-replace",
 })
 
-func ApiResponse(request *ghttp.Request) {
+func APIResponse(request *ghttp.Request) {
 	if request.GetError() == nil {
 		request.Middleware.Next()
 	}
@@ -69,7 +69,7 @@ func ApiResponse(request *ghttp.Request) {
 		}
 	}
 
-	request.Response.WriteJson(&common.ApiRes{
+	request.Response.WriteJson(&common.APIRes{
 		Code:    subCode,
 		Message: message,
 		Data:    data,

@@ -9,7 +9,7 @@ import (
 
 var instances = gmap.NewStrAnyMap(true)
 
-func New(name ...string) (mongodb *Mongodb) {
+func New(name ...string) *MongoDB {
 	group := defaultGroup
 	if len(name) > 0 && name[0] != "" {
 		group = name[0]
@@ -18,7 +18,7 @@ func New(name ...string) (mongodb *Mongodb) {
 	return instances.GetOrSetFuncLock(group, func() any {
 		opts := defaultOptions(group)
 
-		client, err := mongo.Connect(options.Client().ApplyURI(opts.Uri).
+		client, err := mongo.Connect(options.Client().ApplyURI(opts.URI).
 			SetAppName(opts.AppName).
 			SetConnectTimeout(opts.ConnectTimeout).
 			SetMaxConnIdleTime(opts.MaxConnIdleTime).
@@ -30,9 +30,9 @@ func New(name ...string) (mongodb *Mongodb) {
 			panic(err)
 		}
 
-		return &Mongodb{
+		return &MongoDB{
 			options: opts,
 			client:  client,
 		}
-	}).(*Mongodb)
+	}).(*MongoDB)
 }

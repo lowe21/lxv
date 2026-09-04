@@ -19,10 +19,10 @@ import (
 
 type (
 	AuthHandler func(ctx context.Context, token string, refresh bool) (payload *jwt.Payload, sessionKey string, err error)
-	PreHandler  func(ctx context.Context, req *common.ApiReq) (err error)
+	PreHandler  func(ctx context.Context, req *common.APIReq) (err error)
 )
 
-func ApiRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFunc {
+func APIRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFunc {
 	return func(request *ghttp.Request) {
 		err := request.GetError()
 		if err != nil {
@@ -91,7 +91,7 @@ func ApiRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFun
 			return
 		}
 
-		req := &common.ApiReq{}
+		req := &common.APIReq{}
 		if err = validation.Validator(ctx, req); err != nil {
 			err = errcode.New(errcode.ErrInvalidParam, err.Error())
 			return

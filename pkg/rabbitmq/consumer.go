@@ -20,7 +20,7 @@ import (
 type DeliveryHandler func(ctx context.Context, delivery *amqp.Delivery) (err error)
 
 type Consumer struct {
-	*RabbitMq
+	*RabbitMQ
 	wg sync.WaitGroup
 }
 
@@ -44,8 +44,8 @@ func (c *Consumer) Listen(ctx context.Context, exchangeType, exchangeName, routi
 
 		switch exchangeType {
 		case amqp.ExchangeDirect:
-			if gstr.HasSuffix(delivery.RoutingKey, c.options.ConsumeDlxSuffix) {
-				return listener.(QueueListener).ConsumeDlx(ctx, message)
+			if gstr.HasSuffix(delivery.RoutingKey, c.options.ConsumeDLXSuffix) {
+				return listener.(QueueListener).ConsumeDLX(ctx, message)
 			}
 
 			return listener.(QueueListener).Consume(ctx, message)
@@ -62,7 +62,7 @@ func (c *Consumer) Listen(ctx context.Context, exchangeType, exchangeName, routi
 			return
 		}
 
-		return c.ConsumeDlx(ctx, exchangeName, routingKey, deliveryHandler, opts...)
+		return c.ConsumeDLX(ctx, exchangeName, routingKey, deliveryHandler, opts...)
 	case amqp.ExchangeFanout:
 		return c.Subscribe(ctx, exchangeName, deliveryHandler)
 	}
@@ -100,7 +100,7 @@ func (c *Consumer) Consume(ctx context.Context, exchangeName, routingKey string,
 
 		queue, err := c.QueueCreate(channel, amqp.ExchangeDirect, exchangeName, routingKey, false, amqp.Table{
 			"x-dead-letter-exchange":    c.ExchangeName(exchangeName),
-			"x-dead-letter-routing-key": c.RoutingKey(routingKey, c.options.ConsumeDlxSuffix),
+			"x-dead-letter-routing-key": c.RoutingKey(routingKey, c.options.ConsumeDLXSuffix),
 		})
 		if err != nil {
 			return
@@ -136,7 +136,7 @@ func (c *Consumer) Consume(ctx context.Context, exchangeName, routingKey string,
 					} else if deliveryHandler(deliveryCtx, &delivery) != nil {
 						retryCount := gconv.Int(delivery.Headers["x-retry-count"])
 						if retryCount >= options.RetryMax {
-							delivery.RoutingKey = c.RoutingKey(delivery.RoutingKey, c.options.ConsumeDlxSuffix)
+							delivery.RoutingKey = c.RoutingKey(delivery.RoutingKey, c.options.ConsumeDLXSuffix)
 							delivery.Expiration = ""
 						}
 						delay := time.Duration(float64(options.RetryIntervalMin) * math.Pow(options.RetryFactor, float64(retryCount)))
@@ -192,21 +192,21 @@ func (c *Consumer) Consume(ctx context.Context, exchangeName, routingKey string,
 	return
 }
 
-func (c *Consumer) ConsumeDlx(ctx context.Context, exchangeName, routingKey string, deliveryHandler DeliveryHandler, opts ...ConsumerOption) (err error) {
+func (c *Consumer) ConsumeDLX(ctx context.Context, exchangeName, routingKey string, deliveryHandler DeliveryHandler, opts ...ConsumerOption) (err error) {
 	if deliveryHandler == nil {
 		return
 	}
 
-	options := ConsumerOptions{
+	options := &ConsumerOptions{
 		ConsumePrefetch: c.options.ConsumePrefetch,
 	}
 	for _, opt := range opts {
 		if opt != nil {
-			opt(&options)
+			opt(options)
 		}
 	}
 
-	consumeDlx := func() (err error) {
+	consumeDLX := func() (err error) {
 		channel, err := c.Channel()
 		if err != nil {
 			return
@@ -215,7 +215,7 @@ func (c *Consumer) ConsumeDlx(ctx context.Context, exchangeName, routingKey stri
 			_ = channel.Close()
 		}()
 
-		queue, err := c.QueueCreate(channel, amqp.ExchangeDirect, exchangeName, c.RoutingKey(routingKey, c.options.ConsumeDlxSuffix), false, nil)
+		queue, err := c.QueueCreate(channel, amqp.ExchangeDirect, exchangeName, c.RoutingKey(routingKey, c.options.ConsumeDLXSuffix), false, nil)
 		if err != nil {
 			return
 		}
@@ -271,8 +271,8 @@ func (c *Consumer) ConsumeDlx(ctx context.Context, exchangeName, routingKey stri
 	go func() {
 		defer c.wg.Done()
 		for {
-			if err = consumeDlx(); err != nil {
-				g.Log().Errorf(ctx, "consumeDlx error, %+v", err)
+			if err = consumeDLX(); err != nil {
+				g.Log().Errorf(ctx, "consumeDLX error, %+v", err)
 				select {
 				case <-time.After(c.options.ReconnectInterval):
 				case <-ctx.Done():

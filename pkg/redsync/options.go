@@ -8,14 +8,14 @@ import (
 )
 
 const (
-	defaultRedisGroup        = "default"
-	defaultRedisKeyPrefix    = "lock"
-	defaultExpiry            = "10s"
-	defaultTries             = 60
-	defaultRetryDelay        = "1s"
-	defaultExtendMaxDuration = "0"
-	defaultLockTimeout       = "3s"
-	defaultUnlockTimeout     = "3s"
+	redisGroup        = "default"
+	redisKeyPrefix    = "lock"
+	expiry            = "10s"
+	tries             = 60
+	retryDelay        = "1s"
+	extendMaxDuration = "0"
+	lockTimeout       = "3s"
+	unlockTimeout     = "3s"
 )
 
 type Options struct {
@@ -36,28 +36,28 @@ func defaultOptions() *Options {
 	}
 
 	if options.RedisGroup == "" {
-		options.RedisGroup = defaultRedisGroup
+		options.RedisGroup = redisGroup
 	}
 	if options.RedisKeyPrefix == "" {
-		options.RedisKeyPrefix = defaultRedisKeyPrefix
+		options.RedisKeyPrefix = redisKeyPrefix
 	}
 	if options.Expiry <= 0 {
-		options.Expiry = gconv.Duration(defaultExpiry)
+		options.Expiry = gconv.Duration(expiry)
 	}
 	if options.Tries <= 0 {
-		options.Tries = defaultTries
+		options.Tries = tries
 	}
 	if options.RetryDelay <= 0 {
-		options.RetryDelay = gconv.Duration(defaultRetryDelay)
+		options.RetryDelay = gconv.Duration(retryDelay)
 	}
 	if options.ExtendMaxDuration < 0 {
-		options.ExtendMaxDuration = gconv.Duration(defaultExtendMaxDuration)
+		options.ExtendMaxDuration = gconv.Duration(extendMaxDuration)
 	}
 	if options.LockTimeout <= 0 {
-		options.LockTimeout = gconv.Duration(defaultLockTimeout)
+		options.LockTimeout = gconv.Duration(lockTimeout)
 	}
 	if options.UnlockTimeout <= 0 {
-		options.UnlockTimeout = gconv.Duration(defaultUnlockTimeout)
+		options.UnlockTimeout = gconv.Duration(unlockTimeout)
 	}
 
 	return options

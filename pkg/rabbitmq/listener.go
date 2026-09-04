@@ -13,7 +13,7 @@ type (
 		ExchangeName() string
 		RoutingKey() string
 		Consume(ctx context.Context, message *Message) error
-		ConsumeDlx(ctx context.Context, message *Message) error
+		ConsumeDLX(ctx context.Context, message *Message) error
 	}
 
 	SubscribeListener interface {
@@ -29,9 +29,6 @@ var (
 )
 
 func SetQueueListener(queueListener QueueListener) {
-	mutex.Lock()
-	defer mutex.Unlock()
-
 	exchangeName := queueListener.ExchangeName()
 	if exchangeName == "" {
 		panic(fmt.Sprintf("queueListener exchangeName is empty, type: %T", queueListener))
@@ -40,6 +37,9 @@ func SetQueueListener(queueListener QueueListener) {
 	if routingKey == "" {
 		panic(fmt.Sprintf("queueListener routingKey is empty, type: %T", queueListener))
 	}
+
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	if queueListeners == nil {
 		queueListeners = make(map[string]QueueListener)
@@ -52,13 +52,13 @@ func SetQueueListener(queueListener QueueListener) {
 }
 
 func SetSubscribeListener(subscribeListener SubscribeListener) {
-	mutex.Lock()
-	defer mutex.Unlock()
-
 	exchangeName := subscribeListener.ExchangeName()
 	if exchangeName == "" {
 		panic(fmt.Sprintf("subscribeListener exchangeName is empty, type: %T", subscribeListener))
 	}
+
+	mutex.Lock()
+	defer mutex.Unlock()
 
 	if subscribeListeners == nil {
 		subscribeListeners = make(map[string]SubscribeListener)

@@ -10,16 +10,16 @@ import (
 )
 
 const (
-	defaultGroup           = "default"
-	defaultConnectTimeout  = "3s"
-	defaultMaxConnIdleTime = "0"
-	defaultMaxPoolSize     = 0
-	defaultMinPoolSize     = 0
-	defaultMaxConnecting   = 0
+	defaultGroup    = "default"
+	connectTimeout  = "3s"
+	maxConnIdleTime = "0"
+	maxPoolSize     = 0
+	minPoolSize     = 0
+	maxConnecting   = 0
 )
 
 type Options struct {
-	Uri             string
+	URI             string
 	AppName         string
 	Database        string
 	ConnectTimeout  time.Duration
@@ -40,7 +40,7 @@ func defaultOptions(group string) *Options {
 		panic(err)
 	}
 
-	if options.Uri == "" {
+	if options.URI == "" {
 		panic("options error, uri is empty")
 	}
 	if options.AppName == "" {
@@ -50,19 +50,19 @@ func defaultOptions(group string) *Options {
 		panic("options error, database is empty")
 	}
 	if options.ConnectTimeout <= 0 {
-		options.ConnectTimeout = gconv.Duration(defaultConnectTimeout)
+		options.ConnectTimeout = gconv.Duration(connectTimeout)
 	}
 	if options.MaxConnIdleTime < 0 {
-		options.MaxConnIdleTime = gconv.Duration(defaultMaxConnIdleTime)
+		options.MaxConnIdleTime = gconv.Duration(maxConnIdleTime)
 	}
 	if options.MaxPoolSize < 0 {
-		options.MaxPoolSize = defaultMaxPoolSize
+		options.MaxPoolSize = maxPoolSize
 	}
 	if options.MinPoolSize < 0 {
-		options.MinPoolSize = defaultMinPoolSize
+		options.MinPoolSize = minPoolSize
 	}
 	if options.MaxConnecting < 0 {
-		options.MaxConnecting = defaultMaxConnecting
+		options.MaxConnecting = maxConnecting
 	}
 
 	return options

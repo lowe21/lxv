@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	defaultKey     = "64f17cb03b83fe8dc188865b5a250920"
-	defaultExpires = "30d"
-	defaultLeeway  = "7d"
+	key     = "64f17cb03b83fe8dc188865b5a250920"
+	expires = "30d"
+	leeway  = "7d"
 )
 
 type Options struct {
@@ -30,13 +30,13 @@ func defaultOptions() *Options {
 		options.Issuer = g.Server().GetName()
 	}
 	if len(options.Key) == 0 {
-		options.Key = []byte(defaultKey)
+		options.Key = []byte(key)
 	}
 	if options.Expires <= 0 {
-		options.Expires = gconv.Duration(defaultExpires)
+		options.Expires = gconv.Duration(expires)
 	}
 	if options.Leeway <= 0 {
-		options.Leeway = gconv.Duration(defaultLeeway)
+		options.Leeway = gconv.Duration(leeway)
 	}
 
 	return options

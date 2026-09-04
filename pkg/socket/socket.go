@@ -38,8 +38,8 @@ func (s *Socket) Start() {
 	})
 }
 
-func (s *Socket) Connect(request *ghttp.Request, clientId string, group ...string) (err error) {
-	if clientId == "" {
+func (s *Socket) Connect(request *ghttp.Request, clientID string, group ...string) (err error) {
+	if clientID == "" {
 		return errcode.New(errcode.ErrInvalidRequest, "client id is empty")
 	}
 
@@ -53,7 +53,7 @@ func (s *Socket) Connect(request *ghttp.Request, clientId string, group ...strin
 	client := &Client{
 		Socket: s,
 		conn:   conn,
-		id:     clientId,
+		id:     clientID,
 		group:  s.connector.groupName(group...),
 		input:  make(chan []byte, s.options.InputQueueSize),
 		output: make(chan []byte, s.options.OutputQueueSize),
