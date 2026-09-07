@@ -212,7 +212,7 @@ func (c *Connector) GetNodeActiveClientIDs(ctx context.Context, nodeID string, c
 }
 
 func (c *Connector) DeleteNodeClients(ctx context.Context, nodeID string, clientIDs []string, group ...string) (err error) {
-	args := make([]any, 0, len(clientIDs))
+	args := make([]any, 0, len(clientIDs)*2)
 	for _, clientID := range clientIDs {
 		args = append(args, clientID, nodeID)
 	}
