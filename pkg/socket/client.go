@@ -148,7 +148,7 @@ func (c *Client) handler() {
 					}
 				}()
 
-				if err = validation.Validator(c.ctx, input); err != nil {
+				if err = validation.Validator(c.ctx, input, input); err != nil {
 					return
 				}
 
