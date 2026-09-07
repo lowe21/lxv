@@ -39,11 +39,18 @@ func (r *Register) AddNode(ctx context.Context) (err error) {
 }
 
 func (r *Register) RenewNode(ctx context.Context) (err error) {
-	if _, err = r.redis.Expire(ctx, r.nodeKey(), int64(r.options.NodeTTL.Seconds())); err != nil {
+	key := r.nodeKey()
+	ttl := int64(r.options.NodeTTL.Seconds())
+
+	result, err := r.redis.Expire(ctx, key, ttl)
+	if err != nil {
+		return
+	}
+	if result > 0 {
 		return
 	}
 
-	return
+	return r.redis.SetEX(ctx, key, r.options.NodeID, ttl)
 }
 
 func (r *Register) DeleteNode() (err error) {

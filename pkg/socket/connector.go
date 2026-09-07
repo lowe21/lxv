@@ -17,6 +17,14 @@ redis.call('EXPIRE', KEYS[2], ARGV[3])
 return nodeID
 `
 
+	renewClientsScript = `
+for i = 2, #ARGV do
+    redis.call('HSET', KEYS[1], ARGV[i], 1)
+end
+redis.call('EXPIRE', KEYS[1], ARGV[1])
+return 1
+`
+
 	deleteClientScript = `
 local deleted = 0
 if redis.call('HGET', KEYS[1], ARGV[1]) == ARGV[2] then
@@ -108,8 +116,28 @@ func (c *Connector) AddClient(ctx context.Context, client *Client) (err error) {
 }
 
 func (c *Connector) RenewClients(ctx context.Context, group string) (err error) {
-	if _, err = c.redis.Expire(ctx, c.groupNodeKey(c.options.NodeID, group), int64(c.options.NodeTTL.Seconds())); err != nil {
+	key := c.groupNodeKey(c.options.NodeID, group)
+	ttl := int64(c.options.NodeTTL.Seconds())
+
+	result, err := c.redis.Expire(ctx, key, ttl)
+	if err != nil {
 		return
+	}
+	if result > 0 {
+		return
+	}
+
+	clients := c.GetClients(group)
+	if len(clients) > 0 {
+		args := make([]any, 0, len(clients)+1)
+		args = append(args, ttl)
+		for clientID := range clients {
+			args = append(args, clientID)
+		}
+
+		if _, err = c.redis.Eval(ctx, renewClientsScript, 1, []string{key}, args); err != nil {
+			return
+		}
 	}
 
 	return
