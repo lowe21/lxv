@@ -60,11 +60,11 @@ func (s *Socket) Connect(request *ghttp.Request, clientID string, group ...strin
 		done:   make(chan struct{}),
 	}
 	client.ctx, client.cancel = context.WithCancel(context.WithoutCancel(ctx))
-	client.Start()
 
 	if err = s.connector.AddClient(ctx, client); err != nil {
 		client.Close([]byte("connect failed"))
 	} else {
+		client.Start()
 		client.Send(Message(client.id, "connect", "connect succeed"))
 	}
 
