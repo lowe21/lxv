@@ -47,7 +47,6 @@ func (b *Broadcaster) Subscribe(ctx context.Context) {
 				message, err := conn.ReceiveMessage(ctx)
 				if err != nil {
 					close(done)
-					_ = conn.Close(nil)
 					break
 				}
 
@@ -90,6 +89,10 @@ func (b *Broadcaster) Subscribe(ctx context.Context) {
 					}
 				}
 			}
+		}
+
+		if conn != nil {
+			_ = conn.Close(ctx)
 		}
 
 		select {

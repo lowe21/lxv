@@ -51,6 +51,7 @@ func (c *Client) TrySend(message []byte) {
 	case c.output <- message:
 	case <-c.done:
 	default:
+		g.Log().Errorf(c.ctx, "client output message queue is full, clientID: %s, group: %s", c.id, c.group)
 	}
 }
 
@@ -64,7 +65,9 @@ func (c *Client) Close(message []byte) {
 			_ = c.conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, string(message)), time.Now().Add(time.Second))
 		}
 		_ = c.conn.Close()
-		_ = c.connector.DeleteClient(c)
+		if err := c.connector.DeleteClient(c); err != nil {
+			g.Log().Errorf(c.ctx, "delete client error, %v", err)
+		}
 	})
 }
 

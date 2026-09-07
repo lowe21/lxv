@@ -2,22 +2,25 @@ package socket
 
 import (
 	"github.com/gogf/gf/v2/encoding/gjson"
+	"github.com/gogf/gf/v2/os/gtime"
 
 	"github.com/lowe21/lxv/pkg/errcode"
 )
 
 type (
 	Input struct {
-		ID    string `json:"id"    valid:"required"`
-		Event string `json:"event" valid:"required"`
-		Data  any    `json:"data"`
+		ID        string `json:"id"        valid:"required"`
+		Event     string `json:"event"     valid:"required"`
+		Timestamp string `json:"timestamp" valid:"required"`
+		Data      any    `json:"data"`
 	}
 	Output struct {
-		ID      string `json:"id"`
-		Event   string `json:"event"`
-		Code    string `json:"code"`
-		Message string `json:"message"`
-		Data    any    `json:"data"`
+		ID        string `json:"id"`
+		Event     string `json:"event"`
+		Timestamp string `json:"timestamp"`
+		Code      string `json:"code"`
+		Message   string `json:"message"`
+		Data      any    `json:"data"`
 	}
 )
 
@@ -38,10 +41,11 @@ func Message(id, event string, args ...any) []byte {
 	}
 
 	return gjson.MustEncode(&Output{
-		ID:      id,
-		Event:   event,
-		Code:    subCode,
-		Message: message,
-		Data:    data,
+		ID:        id,
+		Event:     event,
+		Timestamp: gtime.TimestampMilliStr(),
+		Code:      subCode,
+		Message:   message,
+		Data:      data,
 	})
 }
