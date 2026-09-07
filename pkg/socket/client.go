@@ -39,10 +39,14 @@ func (c *Client) Start() {
 }
 
 func (c *Client) Send(message []byte) {
+	timer := time.NewTimer(c.options.WriteTimeout)
+	defer timer.Stop()
+
 	select {
-	case <-time.After(c.options.WriteTimeout):
 	case c.output <- message:
 	case <-c.done:
+	case <-timer.C:
+		g.Log().Errorf(c.ctx, "client send message timeout, clientID: %s, group: %s", c.id, c.group)
 	}
 }
 
@@ -51,7 +55,7 @@ func (c *Client) TrySend(message []byte) {
 	case c.output <- message:
 	case <-c.done:
 	default:
-		g.Log().Errorf(c.ctx, "client output message queue is full, clientID: %s, group: %s", c.id, c.group)
+		g.Log().Errorf(c.ctx, "client send message queue is full, clientID: %s, group: %s", c.id, c.group)
 	}
 }
 
