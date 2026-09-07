@@ -5,12 +5,12 @@ import (
 )
 
 const (
-	hash       = SHA256
+	hashType   = SHA256
 	minKeyBits = 2048
 )
 
 type Options struct {
-	Hash       string
+	HashType   string
 	MinKeyBits int
 }
 
@@ -20,8 +20,8 @@ func defaultOptions() *Options {
 		panic(err)
 	}
 
-	if options.Hash == "" {
-		options.Hash = hash
+	if options.HashType == "" {
+		options.HashType = hashType
 	}
 	if options.MinKeyBits <= 0 {
 		options.MinKeyBits = minKeyBits
@@ -32,10 +32,10 @@ func defaultOptions() *Options {
 
 type Option func(*Options)
 
-func WithHash(hash string) Option {
+func WithHashType(hashType string) Option {
 	return func(options *Options) {
-		if hash != "" {
-			options.Hash = hash
+		if hashType != "" {
+			options.HashType = hashType
 		}
 	}
 }

@@ -293,7 +293,7 @@ func (c *CryptoRSA) hash(opts ...Option) (hash crypto.Hash, pss bool, err error)
 		}
 	}
 
-	switch options.Hash {
+	switch options.HashType {
 	case SHA1:
 		return crypto.SHA1, false, nil
 	case SHA256:
