@@ -6,6 +6,7 @@ require (
 	dubbo.apache.org/dubbo-go/v3 v3.3.2
 	github.com/alibaba/sentinel-golang v1.0.4
 	github.com/apache/dubbo-go-hessian2 v1.12.5
+	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/go-redsync/redsync/v4 v4.17.0
 	github.com/gogf/gf/contrib/drivers/mysql/v2 v2.10.3
 	github.com/gogf/gf/contrib/nosql/redis/v2 v2.10.3

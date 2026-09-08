@@ -75,7 +75,7 @@ func Notice(ctx context.Context, message []byte, clientIDs []string, group ...st
 }
 
 func CloseClient(ctx context.Context, message []byte, clientIDs []string, group ...string) (err error) {
-	return instance().broadcaster.CloseClient(ctx, message, "", clientIDs, group...)
+	return instance().broadcaster.CloseClient(ctx, message, "", clientIDs, nil, group...)
 }
 
 func Stop() {

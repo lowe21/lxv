@@ -1,11 +1,13 @@
 package socket
 
 import (
+	"fmt"
 	"time"
+
+	"github.com/denisbrodbeck/machineid"
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/util/gconv"
-	"github.com/gogf/gf/v2/util/guid"
 )
 
 const (
@@ -56,7 +58,11 @@ func defaultOptions() *Options {
 		options.RedisChannel = redisChannel
 	}
 	if options.NodeID == "" {
-		options.NodeID = guid.S()
+		nodeID, err := machineid.ID()
+		if err != nil {
+			panic(fmt.Sprintf("options error, %v", err))
+		}
+		options.NodeID = nodeID
 	}
 	if options.NodeTTL <= 0 {
 		options.NodeTTL = gconv.Duration(nodeTTL)

@@ -20,6 +20,7 @@ type Client struct {
 	*Socket
 	conn      *websocket.Conn
 	id        string
+	token     string
 	group     string
 	input     chan []byte
 	output    chan []byte

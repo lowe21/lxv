@@ -16,12 +16,13 @@ const (
 )
 
 type Broadcast struct {
-	Event        string   `json:"event"`
-	SourceNodeID string   `json:"sourceNodeID"`
-	TargetNodeID string   `json:"targetNodeID"`
-	ClientIDs    []string `json:"clientIDs"`
-	Group        string   `json:"group"`
-	Message      []byte   `json:"message"`
+	Event        string            `json:"event"`
+	SourceNodeID string            `json:"sourceNodeID"`
+	TargetNodeID string            `json:"targetNodeID"`
+	ClientIDs    []string          `json:"clientIDs"`
+	ClientTokens map[string]string `json:"clientTokens"`
+	Group        string            `json:"group"`
+	Message      []byte            `json:"message"`
 }
 
 type Broadcaster struct {
@@ -79,7 +80,10 @@ func (b *Broadcaster) Subscribe(ctx context.Context) {
 					if len(broadcast.ClientIDs) > 0 {
 						for _, clientID := range broadcast.ClientIDs {
 							if client := b.connector.GetClient(clientID, broadcast.Group); client != nil {
-								client.Close(broadcast.Message)
+								token, ok := broadcast.ClientTokens[clientID]
+								if !ok || token == client.token {
+									client.Close(broadcast.Message)
+								}
 							}
 						}
 					} else {
@@ -191,13 +195,14 @@ func (b *Broadcaster) Notice(ctx context.Context, message []byte, clientIDs []st
 	return
 }
 
-func (b *Broadcaster) CloseClient(ctx context.Context, message []byte, nodeID string, clientIDs []string, group ...string) (err error) {
+func (b *Broadcaster) CloseClient(ctx context.Context, message []byte, nodeID string, clientIDs []string, clientTokens map[string]string, group ...string) (err error) {
 	if nodeID != "" {
 		if _, err = b.redis.GroupPubSub().Publish(ctx, b.channelKey(), &Broadcast{
 			Event:        eventCloseClient,
 			SourceNodeID: b.options.NodeID,
 			TargetNodeID: nodeID,
 			ClientIDs:    clientIDs,
+			ClientTokens: clientTokens,
 			Group:        b.connector.groupName(group...),
 			Message:      message,
 		}); err != nil {

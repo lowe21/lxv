@@ -9,6 +9,7 @@ import (
 	"github.com/gogf/gf/v2/database/gredis"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
+	"github.com/gogf/gf/v2/util/guid"
 
 	"github.com/lowe21/lxv/pkg/errcode"
 )
@@ -77,6 +78,7 @@ func (s *Socket) Connect(request *ghttp.Request, clientID string, group ...strin
 		Socket: s,
 		conn:   conn,
 		id:     clientID,
+		token:  guid.S(),
 		group:  s.connector.groupName(group...),
 		input:  make(chan []byte, s.options.InputQueueSize),
 		output: make(chan []byte, s.options.OutputQueueSize),
