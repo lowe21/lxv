@@ -118,5 +118,7 @@ func (s *Socket) Stop() {
 		}
 	}
 
-	_ = s.register.DeleteNode()
+	if err := s.register.DeleteNode(); err != nil {
+		g.Log().Errorf(s.ctx, "unregister client error, %v", err)
+	}
 }

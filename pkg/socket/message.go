@@ -1,6 +1,8 @@
 package socket
 
 import (
+	"uuid"
+
 	"github.com/gogf/gf/v2/encoding/gjson"
 	"github.com/gogf/gf/v2/os/gtime"
 
@@ -31,9 +33,16 @@ func Message(id, event string, args ...any) []byte {
 		data    any
 	)
 
+	if id == "" {
+		id = uuid.NewV7().String()
+	}
+
 	if argsLen := len(args); argsLen > 0 {
 		switch arg := args[0].(type) {
 		case error:
+			if event == "" {
+				event = "error"
+			}
 			subCode, message = errcode.Parse(arg)
 		default:
 			data = arg
