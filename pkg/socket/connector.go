@@ -6,7 +6,6 @@ import (
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/text/gstr"
-	"github.com/gogf/gf/v2/util/gconv"
 )
 
 const (
@@ -100,10 +99,6 @@ func (c *Connector) AddClient(ctx context.Context, client *Client) (err error) {
 		return
 	}
 
-	values := data.Slice()
-	nodeID := gconv.String(values[0])
-	token := gconv.String(values[1])
-
 	clients := c.clients[client.group]
 	if clients == nil {
 		clients = make(map[string]*Client)
@@ -114,6 +109,9 @@ func (c *Connector) AddClient(ctx context.Context, client *Client) (err error) {
 		clients[client.id] = client
 	}
 	c.mutex.Unlock()
+
+	values := data.Strings()
+	nodeID, token := values[0], values[1]
 
 	if nodeID != "" && nodeID != c.options.NodeID && token != "" {
 		if err := c.broadcaster.CloseClient(ctx, []byte("already connected elsewhere"), nodeID, []string{client.id}, map[string]string{
