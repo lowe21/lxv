@@ -31,7 +31,6 @@ func Transaction(model Model, ctx context.Context, fn func(context.Context, gdb.
 
 	if invalidator == nil {
 		invalidator = &cacheInvalidator{}
-		ctx = context.WithValue(ctx, invalidatorCtxKey, invalidator)
 	}
 
 	if err = model.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
