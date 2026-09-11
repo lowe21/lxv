@@ -12,23 +12,6 @@ import (
 	"github.com/gogf/gf/v2/util/gconv"
 )
 
-func CacheOption(db gdb.DB, table, key string, ttl ...time.Duration) (option gdb.CacheOption) {
-	duration := time.Duration(0)
-	if len(ttl) > 0 {
-		duration = ttl[0]
-	}
-
-	if key != "" {
-		key = gstr.Join([]string{":", key}, "")
-	}
-
-	return gdb.CacheOption{
-		Duration: duration,
-		Name:     gstr.Join([]string{db.GetGroup(), "@", db.GetSchema(), "#", table, key}, ""),
-		Force:    true,
-	}
-}
-
 type cacheInvalidator struct {
 	keys  map[string]map[string]struct{}
 	mutex sync.RWMutex
@@ -152,5 +135,22 @@ func cacheHandler(db gdb.DB, key string) (handler gdb.HookHandler) {
 
 			return input.Next(ctx)
 		},
+	}
+}
+
+func cacheOption(db gdb.DB, table, key string, ttl ...time.Duration) (option gdb.CacheOption) {
+	duration := time.Duration(0)
+	if len(ttl) > 0 {
+		duration = ttl[0]
+	}
+
+	if key != "" {
+		key = gstr.Join([]string{":", key}, "")
+	}
+
+	return gdb.CacheOption{
+		Duration: duration,
+		Name:     gstr.Join([]string{db.GetGroup(), "@", db.GetSchema(), "#", table, key}, ""),
+		Force:    true,
 	}
 }

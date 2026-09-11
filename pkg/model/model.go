@@ -13,8 +13,8 @@ import (
 
 type Model interface {
 	DB() gdb.DB
+	Table() string
 	Ctx(ctx context.Context) *gdb.Model
-	cacheOption(key string, ttl ...time.Duration) gdb.CacheOption
 }
 
 func Transaction(model Model, ctx context.Context, fn func(context.Context, gdb.TX) error) (err error) {
@@ -141,7 +141,7 @@ func FindOne(model Model, ctx context.Context, opts ...Option) (record gdb.Recor
 		}
 	} else {
 		m = m.Cache(
-			model.cacheOption(options.cacheKey, time.Hour),
+			cacheOption(model.DB(), model.Table(), options.cacheKey, time.Hour),
 		)
 	}
 
@@ -154,7 +154,7 @@ func InsertOne(model Model, ctx context.Context, do any, opts ...Option) (result
 	m := model.Ctx(ctx)
 	if options.cacheKey != "" {
 		m = m.Hook(
-			cacheHandler(model.DB(), model.cacheOption(options.cacheKey).Name),
+			cacheHandler(model.DB(), cacheOption(model.DB(), model.Table(), options.cacheKey).Name),
 		)
 	}
 
@@ -174,7 +174,7 @@ func UpdateOne(model Model, ctx context.Context, do any, opts ...Option) (result
 	}
 	if options.cacheKey != "" {
 		m = m.Hook(
-			cacheHandler(model.DB(), model.cacheOption(options.cacheKey).Name),
+			cacheHandler(model.DB(), cacheOption(model.DB(), model.Table(), options.cacheKey).Name),
 		)
 	}
 
@@ -194,7 +194,7 @@ func DeleteOne(model Model, ctx context.Context, opts ...Option) (result sql.Res
 	}
 	if options.cacheKey != "" {
 		m = m.Hook(
-			cacheHandler(model.DB(), model.cacheOption(options.cacheKey).Name),
+			cacheHandler(model.DB(), cacheOption(model.DB(), model.Table(), options.cacheKey).Name),
 		)
 	}
 
@@ -209,7 +209,7 @@ func DeleteCache(model Model, ctx context.Context, opts ...Option) (err error) {
 	}
 
 	if options.cacheKey != "" {
-		cacheInvalidate(ctx, model.DB(), model.cacheOption(options.cacheKey).Name)
+		cacheInvalidate(ctx, model.DB(), cacheOption(model.DB(), model.Table(), options.cacheKey).Name)
 	}
 
 	return
