@@ -17,6 +17,7 @@ const (
 type Options struct {
 	uk         gdb.Map
 	cacheKey   string
+	cacheKeys  []string
 	column     string
 	conditions []gdb.Map
 	order      string
@@ -30,6 +31,14 @@ func WithUK(column string, value any) Option {
 	return func(options *Options) {
 		if column != "" {
 			options.uk[column] = value
+		}
+	}
+}
+
+func WithInvalidateUK(invalidateUK gdb.Map) Option {
+	return func(options *Options) {
+		if len(invalidateUK) > 0 {
+			options.cacheKeys = append(options.cacheKeys, gsha256.Encrypt(gconv.String(invalidateUK)))
 		}
 	}
 }
@@ -88,6 +97,7 @@ func parseOptions(opts ...Option) *Options {
 	}
 	if len(options.uk) > 0 {
 		options.cacheKey = gsha256.Encrypt(gconv.String(options.uk))
+		options.cacheKeys = append(options.cacheKeys, options.cacheKey)
 	}
 
 	return options

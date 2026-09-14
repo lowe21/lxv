@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gogf/gf/v2/container/gset"
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/text/gstr"
@@ -79,39 +80,48 @@ func cacheInvalidatorFromCtx(ctx context.Context) (invalidator *cacheInvalidator
 	return
 }
 
-func cacheInvalidate(ctx context.Context, db gdb.DB, key string) {
-	if key == "" {
+func cacheInvalidate(ctx context.Context, db gdb.DB, keys ...string) {
+	set := gset.NewStrSet()
+	for _, key := range keys {
+		if key == "" {
+			continue
+		}
+		if !gstr.HasPrefix(key, "SelectCache:") {
+			key = gstr.Join([]string{"SelectCache", key}, ":")
+		}
+		set.Add(key)
+	}
+	if set.Size() == 0 {
 		return
 	}
 
-	if !gstr.HasPrefix(key, "SelectCache:") {
-		key = gstr.Join([]string{"SelectCache", key}, ":")
-	}
-
+	keys = set.Slice()
 	group := db.GetGroup()
 
 	if gdb.TXFromCtx(ctx, group) != nil {
 		if invalidator := cacheInvalidatorFromCtx(ctx); invalidator != nil {
-			invalidator.register(group, key)
+			for _, key := range keys {
+				invalidator.register(group, key)
+			}
 		} else {
-			g.Log().Errorf(ctx, "transaction context missing cache invalidator, group: %s, key: %s", group, key)
+			g.Log().Errorf(ctx, "transaction context missing cache invalidator, group: %s, keys: %v", group, keys)
 		}
 		return
 	}
 
 	ctx = context.WithoutCancel(ctx)
 
-	if _, err := db.GetCache().Remove(ctx, key); err != nil {
-		g.Log().Errorf(ctx, "flush cache error, group: %s, key: %s, %v", group, key, err)
+	if err := db.GetCache().Removes(ctx, gconv.SliceAny(keys)); err != nil {
+		g.Log().Errorf(ctx, "flush cache error, group: %s, keys: %v, %v", group, keys, err)
 	}
 }
 
-func cacheHandler(db gdb.DB, key string) (handler gdb.HookHandler) {
+func cacheHandler(db gdb.DB, keys ...string) (handler gdb.HookHandler) {
 	return gdb.HookHandler{
 		Insert: func(ctx context.Context, input *gdb.HookInsertInput) (result sql.Result, err error) {
 			defer func() {
 				if err == nil {
-					cacheInvalidate(ctx, db, key)
+					cacheInvalidate(ctx, db, keys...)
 				}
 			}()
 
@@ -120,7 +130,7 @@ func cacheHandler(db gdb.DB, key string) (handler gdb.HookHandler) {
 		Update: func(ctx context.Context, input *gdb.HookUpdateInput) (result sql.Result, err error) {
 			defer func() {
 				if err == nil {
-					cacheInvalidate(ctx, db, key)
+					cacheInvalidate(ctx, db, keys...)
 				}
 			}()
 
@@ -129,7 +139,7 @@ func cacheHandler(db gdb.DB, key string) (handler gdb.HookHandler) {
 		Delete: func(ctx context.Context, input *gdb.HookDeleteInput) (result sql.Result, err error) {
 			defer func() {
 				if err == nil {
-					cacheInvalidate(ctx, db, key)
+					cacheInvalidate(ctx, db, keys...)
 				}
 			}()
 

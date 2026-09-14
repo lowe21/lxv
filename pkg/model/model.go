@@ -152,9 +152,13 @@ func InsertOne(model Model, ctx context.Context, do any, opts ...Option) (result
 	options := parseOptions(opts...)
 
 	m := model.Ctx(ctx)
-	if options.cacheKey != "" {
+	if len(options.cacheKeys) > 0 {
+		cacheKeys := make([]string, 0, len(options.cacheKeys))
+		for _, cacheKey := range options.cacheKeys {
+			cacheKeys = append(cacheKeys, cacheOption(model.DB(), model.Table(), cacheKey).Name)
+		}
 		m = m.Hook(
-			cacheHandler(model.DB(), cacheOption(model.DB(), model.Table(), options.cacheKey).Name),
+			cacheHandler(model.DB(), cacheKeys...),
 		)
 	}
 
@@ -172,9 +176,13 @@ func UpdateOne(model Model, ctx context.Context, do any, opts ...Option) (result
 	for _, condition := range options.conditions {
 		m = m.Where(condition)
 	}
-	if options.cacheKey != "" {
+	if len(options.cacheKeys) > 0 {
+		cacheKeys := make([]string, 0, len(options.cacheKeys))
+		for _, cacheKey := range options.cacheKeys {
+			cacheKeys = append(cacheKeys, cacheOption(model.DB(), model.Table(), cacheKey).Name)
+		}
 		m = m.Hook(
-			cacheHandler(model.DB(), cacheOption(model.DB(), model.Table(), options.cacheKey).Name),
+			cacheHandler(model.DB(), cacheKeys...),
 		)
 	}
 
@@ -192,9 +200,13 @@ func DeleteOne(model Model, ctx context.Context, opts ...Option) (result sql.Res
 	for _, condition := range options.conditions {
 		m = m.Where(condition)
 	}
-	if options.cacheKey != "" {
+	if len(options.cacheKeys) > 0 {
+		cacheKeys := make([]string, 0, len(options.cacheKeys))
+		for _, cacheKey := range options.cacheKeys {
+			cacheKeys = append(cacheKeys, cacheOption(model.DB(), model.Table(), cacheKey).Name)
+		}
 		m = m.Hook(
-			cacheHandler(model.DB(), cacheOption(model.DB(), model.Table(), options.cacheKey).Name),
+			cacheHandler(model.DB(), cacheKeys...),
 		)
 	}
 
@@ -203,13 +215,13 @@ func DeleteOne(model Model, ctx context.Context, opts ...Option) (result sql.Res
 
 func DeleteCache(model Model, ctx context.Context, opts ...Option) (err error) {
 	options := parseOptions(opts...)
-	if len(options.uk) == 0 {
-		err = errcode.New(gcode.CodeDbOperationError, "unique key is empty")
-		return
-	}
 
-	if options.cacheKey != "" {
-		cacheInvalidate(ctx, model.DB(), cacheOption(model.DB(), model.Table(), options.cacheKey).Name)
+	if len(options.cacheKeys) > 0 {
+		cacheKeys := make([]string, 0, len(options.cacheKeys))
+		for _, cacheKey := range options.cacheKeys {
+			cacheKeys = append(cacheKeys, cacheOption(model.DB(), model.Table(), cacheKey).Name)
+		}
+		cacheInvalidate(ctx, model.DB(), cacheKeys...)
 	}
 
 	return
