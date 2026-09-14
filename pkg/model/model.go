@@ -134,7 +134,7 @@ func FindOne(model Model, ctx context.Context, opts ...Option) (record gdb.Recor
 		return
 	}
 
-	m := model.Ctx(ctx)
+	m := model.Ctx(ctx).Where(options.uk)
 	if len(options.conditions) > 0 {
 		for _, condition := range options.conditions {
 			m = m.Where(condition)
