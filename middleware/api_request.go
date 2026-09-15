@@ -82,10 +82,7 @@ func APIRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFun
 				}()
 			}
 			if handler.GetMetaTag("upload") != "" {
-				multipartForm := request.GetMultipartForm()
-				if multipartForm != nil && len(multipartForm.File) > 0 {
-					return
-				}
+				return
 			}
 		} else {
 			return
