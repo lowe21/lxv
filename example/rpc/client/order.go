@@ -22,7 +22,7 @@ func init() {
 var order = &Order{}
 
 type Order struct {
-	orderCancel func(ctx context.Context, req *OrderCancelReq) (res *OrderCancelRes, err error)
+	orderCancel func(context.Context, *OrderCancelReq) (*OrderCancelRes, error)
 }
 
 func (o *Order) Reference() string {
