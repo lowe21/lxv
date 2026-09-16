@@ -5,9 +5,6 @@ import (
 	"mime"
 	"net/http"
 
-	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
-
 	"github.com/gogf/gf/v2/container/gset"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
@@ -48,23 +45,19 @@ func APIResponse(request *ghttp.Request) {
 		request.Response.ClearBuffer()
 		subCode, message = errcode.Parse(err)
 		g.Log().Error(ctx, err, request.RequestURI, request.GetBodyString())
-
-		if span := trace.SpanFromContext(ctx); span.IsRecording() {
-			span.SetStatus(codes.Error, message)
-		}
 	} else {
-		if request.Response.Status >= http.StatusBadRequest {
-			request.Response.ClearBuffer()
-			subCode, _ = errcode.Parse(errcode.ErrGateway)
-			message = fmt.Sprintf("HTTP %d %s", request.Response.Status, http.StatusText(request.Response.Status))
-		} else {
-			if request.Response.Status >= http.StatusMultipleChoices {
+		if request.Response.Status >= http.StatusMultipleChoices {
+			if request.Response.Status >= http.StatusBadRequest {
+				request.Response.ClearBuffer()
+				subCode, _ = errcode.Parse(errcode.ErrGateway)
+				message = fmt.Sprintf("HTTP %d %s", request.Response.Status, http.StatusText(request.Response.Status))
+			} else {
 				return
 			}
+		} else {
 			if request.Response.BufferLength() > 0 || request.Response.BytesWritten() > 0 {
 				return
 			}
-
 			data = request.GetHandlerResponse()
 		}
 	}
