@@ -1,6 +1,7 @@
 package cryptorsa
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -12,7 +13,6 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/gogf/gf/v2/encoding/gbase64"
 	"github.com/gogf/gf/v2/text/gstr"
 
 	"github.com/lowe21/lxv/pkg/errcode"
@@ -43,25 +43,25 @@ func (c *CryptoRSA) Sign(privateKey, content string, opts ...Option) (sign strin
 		return
 	}
 
-	bytes, err := c.hashSum(hash, content)
+	digest, err := c.hashSum(hash, content)
 	if err != nil {
 		return
 	}
 
 	signed := make([]byte, 0)
 	if pss {
-		signed, err = rsa.SignPSS(rand.Reader, key, hash, bytes, &rsa.PSSOptions{
+		signed, err = rsa.SignPSS(rand.Reader, key, hash, digest, &rsa.PSSOptions{
 			Hash:       hash,
 			SaltLength: rsa.PSSSaltLengthEqualsHash,
 		})
 	} else {
-		signed, err = rsa.SignPKCS1v15(rand.Reader, key, hash, bytes)
+		signed, err = rsa.SignPKCS1v15(rand.Reader, key, hash, digest)
 	}
 	if err != nil {
 		return
 	}
 
-	return gbase64.EncodeToString(signed), nil
+	return base64.StdEncoding.EncodeToString(signed), nil
 }
 
 func (c *CryptoRSA) Verify(publicKey, content, sign string, opts ...Option) (err error) {
@@ -75,7 +75,7 @@ func (c *CryptoRSA) Verify(publicKey, content, sign string, opts ...Option) (err
 		return
 	}
 
-	bytes, err := c.hashSum(hash, content)
+	digest, err := c.hashSum(hash, content)
 	if err != nil {
 		return
 	}
@@ -85,7 +85,7 @@ func (c *CryptoRSA) Verify(publicKey, content, sign string, opts ...Option) (err
 		sign = gstr.Replace(sign, " ", "+")
 	}
 
-	signed, err := gbase64.DecodeString(sign)
+	signed, err := base64.StdEncoding.DecodeString(sign)
 	if err != nil {
 		return
 	}
@@ -94,13 +94,13 @@ func (c *CryptoRSA) Verify(publicKey, content, sign string, opts ...Option) (err
 	}
 
 	if pss {
-		return rsa.VerifyPSS(key, hash, bytes, signed, &rsa.PSSOptions{
+		return rsa.VerifyPSS(key, hash, digest, signed, &rsa.PSSOptions{
 			Hash:       hash,
 			SaltLength: rsa.PSSSaltLengthEqualsHash,
 		})
 	}
 
-	return rsa.VerifyPKCS1v15(key, hash, bytes, signed)
+	return rsa.VerifyPKCS1v15(key, hash, digest, signed)
 }
 
 func (c *CryptoRSA) parsePrivateKey(privateKey string) (key *rsa.PrivateKey, err error) {
@@ -177,13 +177,17 @@ func (c *CryptoRSA) decodeKey(key string) (der []byte, pemType string, err error
 	}
 
 	if gstr.Contains(key, "-----BEGIN ") {
-		block, _ := pem.Decode([]byte(key))
+		block, rest := pem.Decode([]byte(key))
 		if block == nil {
 			err = errcode.New("decode RSA key from PEM format failed")
 			return
 		}
+		if len(bytes.TrimSpace(rest)) > 0 {
+			err = errcode.New("RSA key contains unexpected trailing data")
+			return
+		}
 		if block.Headers["Proc-Type"] == "4,ENCRYPTED" {
-			err = errcode.New("RSA key format is not supported")
+			err = errcode.New("encrypted RSA key is not supported")
 			return
 		}
 
@@ -191,7 +195,7 @@ func (c *CryptoRSA) decodeKey(key string) (der []byte, pemType string, err error
 	}
 
 	key = gstr.Join(gstr.Fields(key), "")
-	der, err = gbase64.DecodeString(key)
+	der, err = base64.StdEncoding.DecodeString(key)
 	if err != nil {
 		der, err = base64.RawStdEncoding.DecodeString(key)
 	}
@@ -211,7 +215,7 @@ func (c *CryptoRSA) parsePKCS8PrivateKey(der []byte) (key *rsa.PrivateKey, err e
 
 	key, ok := parsed.(*rsa.PrivateKey)
 	if !ok {
-		err = errcode.New("RSA private key is not PKCS#8 format")
+		err = errcode.New("PKCS#8 private key is not RSA")
 	}
 
 	return
@@ -229,7 +233,7 @@ func (c *CryptoRSA) parsePKIXPublicKey(der []byte) (key *rsa.PublicKey, err erro
 
 	key, ok := parsed.(*rsa.PublicKey)
 	if !ok {
-		err = errcode.New("RSA public key is not PKIX format")
+		err = errcode.New("PKIX public key is not RSA")
 	}
 
 	return
@@ -243,7 +247,7 @@ func (c *CryptoRSA) parseCertificatePublicKey(der []byte) (key *rsa.PublicKey, e
 
 	key, ok := parsed.PublicKey.(*rsa.PublicKey)
 	if !ok {
-		err = errcode.New("RSA public key is not certificate format")
+		err = errcode.New("X.509 certificate public key is not RSA")
 	}
 
 	return
@@ -295,19 +299,16 @@ func (c *CryptoRSA) hash(opts ...Option) (hash crypto.Hash, pss bool, err error)
 
 	switch options.HashType {
 	case SHA1:
-		return crypto.SHA1, false, nil
-	case SHA256:
-		return crypto.SHA256, false, nil
-	case SHA384:
-		return crypto.SHA384, false, nil
-	case SHA512:
-		return crypto.SHA512, false, nil
-	case SHA256PSS:
-		return crypto.SHA256, true, nil
-	case SHA384PSS:
-		return crypto.SHA384, true, nil
-	case SHA512PSS:
-		return crypto.SHA512, true, nil
+		hash = crypto.SHA1
+	case SHA256, SHA256PSS:
+		hash = crypto.SHA256
+		pss = options.HashType == SHA256PSS
+	case SHA384, SHA384PSS:
+		hash = crypto.SHA384
+		pss = options.HashType == SHA384PSS
+	case SHA512, SHA512PSS:
+		hash = crypto.SHA512
+		pss = options.HashType == SHA512PSS
 	default:
 		err = errcode.New("invalid RSA hash algorithm")
 	}
@@ -315,7 +316,7 @@ func (c *CryptoRSA) hash(opts ...Option) (hash crypto.Hash, pss bool, err error)
 	return
 }
 
-func (c *CryptoRSA) hashSum(hash crypto.Hash, content string) (bytes []byte, err error) {
+func (c *CryptoRSA) hashSum(hash crypto.Hash, content string) (digest []byte, err error) {
 	if !hash.Available() {
 		err = errcode.New("RSA hash algorithm is not available")
 		return

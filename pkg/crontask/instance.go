@@ -14,7 +14,7 @@ var (
 func instance() *CronTask {
 	once.Do(func() {
 		cronTask = &CronTask{
-			options: defaultOptions(),
+			options: newOptions(),
 			cron:    gcron.New(),
 		}
 	})

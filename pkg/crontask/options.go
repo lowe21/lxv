@@ -9,7 +9,7 @@ type Option struct {
 	Pattern string
 }
 
-func defaultOptions() []*Option {
+func newOptions() []*Option {
 	options := make([]*Option, 0)
 	if err := g.Config().MustGet(nil, "crontask").Scan(&options); err != nil {
 		panic(err)

@@ -14,7 +14,7 @@ type Options struct {
 	MinKeyBits int
 }
 
-func defaultOptions() *Options {
+func newOptions() *Options {
 	options := &Options{}
 	if err := g.Config().MustGet(nil, "crypto.rsa").Scan(options); err != nil {
 		panic(err)

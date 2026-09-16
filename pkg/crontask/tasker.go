@@ -14,7 +14,7 @@ type Tasker interface {
 }
 
 var (
-	taskers map[string]Tasker
+	taskers = make(map[string]Tasker)
 	mutex   sync.RWMutex
 )
 
@@ -39,9 +39,6 @@ func SetTasker(tasker Tasker) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	if taskers == nil {
-		taskers = make(map[string]Tasker)
-	}
 	if _, ok := taskers[name]; ok {
 		panic(fmt.Sprintf("tasker already exists, name: %s", name))
 	}

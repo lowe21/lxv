@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"slices"
 	"sync"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/olekukonko/tablewriter/tw"
 
-	"github.com/gogf/gf/v2/container/garray"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gcron"
@@ -38,7 +38,7 @@ func (c *CronTask) Start() {
 				Alignment: tw.CellAlignment{PerColumn: []tw.Align{tw.AlignCenter}},
 			},
 		}))
-		table.Header(garray.New().Pad(len(rows), "CRONTASK").Slice())
+		table.Header(slices.Repeat([]string{"CRONTASK"}, len(rows)))
 		if err := table.Append(rows); err != nil {
 			panic(err)
 		}
@@ -69,11 +69,6 @@ func (c *CronTask) Start() {
 }
 
 func (c *CronTask) AddTask(ctx context.Context, name, pattern string, tasker Tasker) (err error) {
-	if c.cron.Search(name) != nil {
-		err = errcode.New(fmt.Sprintf("task already exists, name: %s", name))
-		return
-	}
-
 	if _, err = c.cron.AddSingleton(ctx, pattern, func(ctx context.Context) {
 		defer func() {
 			if exception := recover(); exception != nil {
