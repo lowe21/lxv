@@ -5,7 +5,8 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"sort"
+	"maps"
+	"slices"
 
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/text/gstr"
@@ -18,8 +19,8 @@ import (
 )
 
 type (
-	AuthHandler func(ctx context.Context, token string, refresh bool) (payload *jwt.Payload, sessionKey string, err error)
-	PreHandler  func(ctx context.Context, req *common.APIReq) (err error)
+	AuthHandler func(ctx context.Context, token string, leeway bool) (*jwt.Payload, error)
+	PreHandler  func(ctx context.Context, req *common.APIReq) error
 )
 
 func APIRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFunc {
@@ -44,10 +45,10 @@ func APIRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFun
 			if !handler.Handler.Info.IsStrictRoute {
 				return
 			}
-			if handler.GetMetaTag("notify") != "" {
+			if gconv.Bool(handler.GetMetaTag("notify")) {
 				return
 			}
-			if handler.GetMetaTag("auth") != "" {
+			if gconv.Bool(handler.GetMetaTag("auth")) {
 				authorization := request.Header.Get("Authorization")
 				if authorization == "" {
 					err = errcode.New(errcode.ErrAuthFailed, "Authorization header is empty")
@@ -66,10 +67,12 @@ func APIRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFun
 				}
 
 				payload := &jwt.Payload{}
-				payload, sessionKey, err = authHandler(ctx, parts[1], handler.GetMetaTag("refresh") != "")
+				payload, err = authHandler(ctx, parts[1], gconv.Bool(handler.GetMetaTag("leeway")))
 				if err != nil {
 					return
 				}
+
+				sessionKey = payload.SessionKey
 				if sessionKey == "" {
 					err = errcode.New(errcode.ErrAuthFailed, "sessionKey is empty")
 					return
@@ -81,7 +84,7 @@ func APIRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFun
 					}
 				}()
 			}
-			if handler.GetMetaTag("upload") != "" {
+			if gconv.Bool(handler.GetMetaTag("upload")) {
 				return
 			}
 		} else {
@@ -96,14 +99,10 @@ func APIRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFun
 
 		if sessionKey != "" {
 			reqMap := gconv.MapStrStr(req)
-			reqKeys := make([]string, 0, len(reqMap))
-			for key := range reqMap {
-				if key == "" || key == "sign" {
-					continue
-				}
-				reqKeys = append(reqKeys, key)
-			}
-			sort.Strings(reqKeys)
+			reqKeys := slices.Sorted(maps.Keys(reqMap))
+			reqKeys = slices.DeleteFunc(reqKeys, func(key string) bool {
+				return key == "" || key == "sign"
+			})
 			reqValues := make([]string, 0, len(reqKeys))
 			for _, key := range reqKeys {
 				reqValues = append(reqValues, gstr.Join([]string{key, reqMap[key]}, "="))

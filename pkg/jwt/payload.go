@@ -6,8 +6,9 @@ import (
 
 type (
 	Payload struct {
-		IdentityID string `json:"identityID" valid:"required" description:"身份ID" read-only:"true"`
-		TokenID    string `json:"tokenID"    valid:"required" description:"令牌ID" read-only:"true"`
+		IdentityID string `json:"identityID" valid:"required" read-only:"true" description:"身份ID"`
+		TokenID    string `json:"tokenID"    valid:"required" read-only:"true" description:"令牌ID"`
+		SessionKey string `json:"sessionKey" valid:"required" read-only:"true" description:"会话密钥"`
 	}
 
 	Claims struct {
