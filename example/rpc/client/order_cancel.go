@@ -20,5 +20,5 @@ func OrderCancel(ctx context.Context, req *OrderCancelReq) (res *OrderCancelRes,
 		}
 	}()
 
-	return order.OrderCancel(ctx, req)
+	return order.orderCancel(ctx, req)
 }
