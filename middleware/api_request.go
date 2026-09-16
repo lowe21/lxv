@@ -105,7 +105,7 @@ func APIRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFun
 			})
 			reqValues := make([]string, 0, len(reqKeys))
 			for _, key := range reqKeys {
-				reqValues = append(reqValues, gstr.Join([]string{key, reqMap[key]}, "="))
+				reqValues = append(reqValues, key+"="+reqMap[key])
 			}
 			reqString := gstr.Join(reqValues, "&")
 
