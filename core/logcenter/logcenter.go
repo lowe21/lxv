@@ -25,25 +25,20 @@ func Init() {
 				input.Next(ctx)
 
 				content := input.ValuesContent()
+				stacks := make([]string, 1, len(input.Values)+1)
 				delimiter := "\n"
-				stack := ""
 
 				for _, value := range input.Values {
-					strings := fmt.Sprintf("%+v", value)
-					if strings != "" {
-						array := gstr.Split(strings, delimiter)
-						stacks := make([]string, 0, len(array))
-						for _, item := range array {
+					if str := fmt.Sprintf("%+v", value); str != "" {
+						for _, item := range gstr.Split(str, delimiter) {
 							if item != content {
 								stacks = append(stacks, item)
 							}
 						}
-						if len(stacks) > 0 {
-							stack = gstr.Join([]string{stack, gstr.Join(stacks, delimiter)}, delimiter)
-						}
 					}
 				}
 
+				stack := gstr.Join(stacks, delimiter)
 				if stack == "" {
 					stack = input.Stack
 				}
