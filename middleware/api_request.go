@@ -98,7 +98,7 @@ func APIRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFun
 			reqMap := gconv.MapStrStr(req)
 			reqKeys := make([]string, 0, len(reqMap))
 			for key := range reqMap {
-				if key == "sign" {
+				if key == "" || key == "sign" {
 					continue
 				}
 				reqKeys = append(reqKeys, key)
