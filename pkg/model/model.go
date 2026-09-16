@@ -18,29 +18,26 @@ type Model interface {
 }
 
 func Transaction(model Model, ctx context.Context, fn func(context.Context, gdb.TX) error) (err error) {
-	if fn == nil {
-		return
-	}
+	if fn != nil {
+		isTx := gdb.TXFromCtx(ctx, model.DB().GetGroup()) != nil
 
-	isTx := gdb.TXFromCtx(ctx, model.DB().GetGroup()) != nil
+		invalidator := cacheInvalidatorFromCtx(ctx)
+		if isTx && invalidator == nil {
+			return errcode.New(gcode.CodeDbOperationError, "transaction context missing cache invalidator")
+		}
+		if invalidator == nil {
+			invalidator = &cacheInvalidator{}
+		}
 
-	invalidator := cacheInvalidatorFromCtx(ctx)
-	if isTx && invalidator == nil {
-		return errcode.New(gcode.CodeDbOperationError, "transaction context missing cache invalidator")
-	}
+		if err = model.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+			return fn(context.WithValue(ctx, invalidatorCtxKey, invalidator), tx)
+		}); err != nil {
+			return
+		}
 
-	if invalidator == nil {
-		invalidator = &cacheInvalidator{}
-	}
-
-	if err = model.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
-		return fn(context.WithValue(ctx, invalidatorCtxKey, invalidator), tx)
-	}); err != nil {
-		return
-	}
-
-	if !isTx {
-		invalidator.flush(ctx, model.DB())
+		if !isTx {
+			invalidator.Flush(ctx, model.DB())
+		}
 	}
 
 	return

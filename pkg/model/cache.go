@@ -18,47 +18,56 @@ type cacheInvalidator struct {
 	mutex sync.RWMutex
 }
 
-func (c *cacheInvalidator) register(group, key string) {
-	if key == "" {
-		return
-	}
-
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	if c.keys == nil {
-		c.keys = make(map[string]map[string]struct{})
-	}
-	if c.keys[group] == nil {
-		c.keys[group] = make(map[string]struct{})
-	}
-	c.keys[group][key] = struct{}{}
-}
-
-func (c *cacheInvalidator) flush(ctx context.Context, db gdb.DB) {
-	group := db.GetGroup()
-
+func (c *cacheInvalidator) GetKeys(group string) (keys []string) {
 	c.mutex.RLock()
-	keys := make([]string, 0, len(c.keys[group]))
+	defer c.mutex.RUnlock()
+
+	keys = make([]string, 0, len(c.keys[group]))
 	for key := range c.keys[group] {
 		keys = append(keys, key)
 	}
-	c.mutex.RUnlock()
 
+	return
+}
+
+func (c *cacheInvalidator) SetKey(group, key string) {
+	if key != "" {
+		c.mutex.Lock()
+		defer c.mutex.Unlock()
+
+		if c.keys == nil {
+			c.keys = make(map[string]map[string]struct{})
+		}
+		if c.keys[group] == nil {
+			c.keys[group] = make(map[string]struct{})
+		}
+		c.keys[group][key] = struct{}{}
+	}
+}
+
+func (c *cacheInvalidator) DeleteKeys(group string, keys []string) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	for _, key := range keys {
+		delete(c.keys[group], key)
+	}
+	if len(c.keys[group]) == 0 {
+		delete(c.keys, group)
+	}
+}
+
+func (c *cacheInvalidator) Flush(ctx context.Context, db gdb.DB) {
+	group := db.GetGroup()
+
+	keys := c.GetKeys(group)
 	if len(keys) > 0 {
 		ctx = context.WithoutCancel(ctx)
 
 		if err := db.GetCache().Removes(ctx, gconv.SliceAny(keys)); err != nil {
 			g.Log().Errorf(ctx, "flush cache error, group: %s, keys: %v, %v", group, keys, err)
 		} else {
-			c.mutex.Lock()
-			for _, key := range keys {
-				delete(c.keys[group], key)
-			}
-			if len(c.keys[group]) == 0 {
-				delete(c.keys, group)
-			}
-			c.mutex.Unlock()
+			c.DeleteKeys(group, keys)
 		}
 	}
 }
@@ -95,13 +104,13 @@ func cacheInvalidate(ctx context.Context, db gdb.DB, keys ...string) {
 		return
 	}
 
-	keys = set.Slice()
 	group := db.GetGroup()
+	keys = set.Slice()
 
 	if gdb.TXFromCtx(ctx, group) != nil {
 		if invalidator := cacheInvalidatorFromCtx(ctx); invalidator != nil {
 			for _, key := range keys {
-				invalidator.register(group, key)
+				invalidator.SetKey(group, key)
 			}
 		} else {
 			g.Log().Errorf(ctx, "transaction context missing cache invalidator, group: %s, keys: %v", group, keys)
