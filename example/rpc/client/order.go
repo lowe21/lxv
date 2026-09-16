@@ -12,9 +12,7 @@ func init() {
 		ConnectionInjectFunc: func(raw any, conn *dubbo.ClientConn) {
 			client := raw.(*Order)
 			client.orderCancel = func(ctx context.Context, req *OrderCancelReq) (res *OrderCancelRes, err error) {
-				if err = conn.CallUnary(ctx, []any{req}, &res, "orderCancel", dubbo.WithRetries(0)); err != nil {
-					return
-				}
+				err = conn.CallUnary(ctx, []any{req}, &res, "orderCancel", dubbo.WithRetries(0))
 				return
 			}
 		},
