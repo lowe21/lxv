@@ -19,23 +19,36 @@ import (
 
 type Factory[T any] struct {
 	providers map[string]Provider[T]
-	instances *gcache.Cache
+	cache     *gcache.Cache
 	ttl       time.Duration
-	mutex     sync.RWMutex
 	sf        singleflight.Group
+	mutex     sync.RWMutex
 }
 
-func (f *Factory[T]) Register(name string, provider Provider[T]) {
+func (f *Factory[T]) GetProvider(name string) (provider Provider[T], err error) {
+	f.mutex.RLock()
+	defer f.mutex.RUnlock()
+
+	provider, ok := f.providers[name]
+	if !ok {
+		err = errcode.New(fmt.Sprintf("provider not found, name: %s", name))
+	}
+
+	return
+}
+
+func (f *Factory[T]) SetProvider(provider Provider[T]) {
+	name := provider.Name()
 	if name == "" {
 		panic(fmt.Sprintf("provider name is empty, type: %T", provider))
-	}
-	if g.IsNil(provider) {
-		panic(fmt.Sprintf("provider is nil, name: %s", name))
 	}
 
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 
+	if f.providers == nil {
+		f.providers = make(map[string]Provider[T])
+	}
 	if _, ok := f.providers[name]; ok {
 		panic(fmt.Sprintf("provider already exists, name: %s", name))
 	}
@@ -43,11 +56,8 @@ func (f *Factory[T]) Register(name string, provider Provider[T]) {
 }
 
 func (f *Factory[T]) Instance(name string, overrides map[string]any) (instance T, err error) {
-	f.mutex.RLock()
-	provider, ok := f.providers[name]
-	f.mutex.RUnlock()
-	if !ok {
-		err = errcode.New(errcode.ErrBusinessFailed, fmt.Sprintf("provider is not registered, name: %s", name))
+	provider, err := f.GetProvider(name)
+	if err != nil {
 		return
 	}
 
@@ -58,32 +68,32 @@ func (f *Factory[T]) Instance(name string, overrides map[string]any) (instance T
 			return
 		}
 	}
-	instanceKey := gstr.Join([]string{name, gsha256.Encrypt(gconv.String(options))}, ":")
+	key := gstr.Join([]string{name, gsha256.Encrypt(gconv.String(options))}, ":")
 
-	value, err := f.instances.Get(ctx, instanceKey)
+	value, err := f.cache.Get(ctx, key)
 	if err != nil {
 		return
 	}
 	if value != nil {
-		return value.Val().(T), nil
-	}
-
-	result := <-f.sf.DoChan(instanceKey, func() (instance any, err error) {
-		instance, err = provider.New(options)
-		if err != nil {
-			return
-		}
-		if !g.IsNil(instance) {
-			err = f.instances.Set(ctx, instanceKey, instance, f.ttl)
-		} else {
-			err = errcode.New(errcode.ErrBusinessFailed, fmt.Sprintf("provider instance is nil, name: %s", name))
-		}
-		return
-	})
-	if result.Err != nil {
-		err = result.Err
+		instance = value.Val().(T)
 	} else {
-		instance = result.Val.(T)
+		result := <-f.sf.DoChan(key, func() (instance any, err error) {
+			instance, err = provider.New(options)
+			if err != nil {
+				return
+			}
+			if g.IsNil(instance) {
+				err = errcode.New(fmt.Sprintf("provider instance is nil, name: %s", name))
+			} else {
+				err = f.cache.Set(ctx, key, instance, f.ttl)
+			}
+			return
+		})
+		if result.Err != nil {
+			err = result.Err
+		} else {
+			instance = result.Val.(T)
+		}
 	}
 
 	return

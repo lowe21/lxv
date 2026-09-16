@@ -9,7 +9,7 @@ import (
 func New[T any]() *Factory[T] {
 	return &Factory[T]{
 		providers: make(map[string]Provider[T]),
-		instances: gcache.New(),
+		cache:     gcache.New(),
 		ttl:       time.Hour,
 	}
 }
