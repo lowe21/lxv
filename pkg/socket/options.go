@@ -2,8 +2,7 @@ package socket
 
 import (
 	"time"
-
-	"github.com/gogf/gf/v2/util/guid"
+	"uuid"
 
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/util/gconv"
@@ -57,7 +56,7 @@ func defaultOptions() *Options {
 		options.RedisChannel = redisChannel
 	}
 	if options.NodeID == "" {
-		options.NodeID = guid.S()
+		options.NodeID = uuid.NewV4().String()
 	}
 	if options.NodeTTL <= 0 {
 		options.NodeTTL = gconv.Duration(nodeTTL)

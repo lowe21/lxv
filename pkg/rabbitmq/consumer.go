@@ -171,11 +171,9 @@ func (c *Consumer) Consume(ctx context.Context, exchangeName, routingKey string,
 	}
 
 	for range options.ConsumeConcurrent {
-		c.wg.Add(1)
-		go func() {
-			defer c.wg.Done()
+		c.wg.Go(func() {
 			for {
-				if err = consume(); err != nil {
+				if err := consume(); err != nil {
 					g.Log().Errorf(ctx, "consume error, %+v", err)
 					select {
 					case <-time.After(c.options.ReconnectInterval):
@@ -186,7 +184,7 @@ func (c *Consumer) Consume(ctx context.Context, exchangeName, routingKey string,
 					break
 				}
 			}
-		}()
+		})
 	}
 
 	return
@@ -267,11 +265,9 @@ func (c *Consumer) ConsumeDLX(ctx context.Context, exchangeName, routingKey stri
 		}
 	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
+	c.wg.Go(func() {
 		for {
-			if err = consumeDLX(); err != nil {
+			if err := consumeDLX(); err != nil {
 				g.Log().Errorf(ctx, "consumeDLX error, %+v", err)
 				select {
 				case <-time.After(c.options.ReconnectInterval):
@@ -282,7 +278,7 @@ func (c *Consumer) ConsumeDLX(ctx context.Context, exchangeName, routingKey stri
 				break
 			}
 		}
-	}()
+	})
 
 	return
 }
@@ -348,11 +344,9 @@ func (c *Consumer) Subscribe(ctx context.Context, exchangeName string, deliveryH
 		}
 	}
 
-	c.wg.Add(1)
-	go func() {
-		defer c.wg.Done()
+	c.wg.Go(func() {
 		for {
-			if err = subscribe(); err != nil {
+			if err := subscribe(); err != nil {
 				g.Log().Errorf(ctx, "subscribe error, %+v", err)
 				select {
 				case <-time.After(c.options.ReconnectInterval):
@@ -363,7 +357,7 @@ func (c *Consumer) Subscribe(ctx context.Context, exchangeName string, deliveryH
 				break
 			}
 		}
-	}()
+	})
 
 	return
 }
