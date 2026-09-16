@@ -8,8 +8,11 @@ import (
 
 	"golang.org/x/sync/singleflight"
 
+	"github.com/gogf/gf/v2/crypto/gsha256"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gcache"
+	"github.com/gogf/gf/v2/text/gstr"
+	"github.com/gogf/gf/v2/util/gconv"
 
 	"github.com/lowe21/lxv/pkg/errcode"
 )
@@ -48,12 +51,14 @@ func (f *Factory[T]) Instance(name string, overrides map[string]any) (instance T
 		return
 	}
 
-	instanceKey, optionsMap, err := provider.Prepare(name, overrides)
-	if err != nil {
-		return
-	}
-
 	ctx := context.Background()
+	options := provider.Options()
+	if len(overrides) > 0 {
+		if err = gconv.Scan(overrides, options); err != nil {
+			return
+		}
+	}
+	instanceKey := gstr.Join([]string{name, gsha256.Encrypt(gconv.String(options))}, ":")
 
 	value, err := f.instances.Get(ctx, instanceKey)
 	if err != nil {
@@ -64,7 +69,7 @@ func (f *Factory[T]) Instance(name string, overrides map[string]any) (instance T
 	}
 
 	result := <-f.sf.DoChan(instanceKey, func() (instance any, err error) {
-		instance, err = provider.New(optionsMap)
+		instance, err = provider.New(options)
 		if err != nil {
 			return
 		}
