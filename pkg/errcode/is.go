@@ -1,6 +1,6 @@
 package errcode
 
-func As(err error, target error) bool {
+func Is(err error, target error) bool {
 	errSubCode, _ := Parse(New(err))
 	targetSubCode, _ := Parse(New(target))
 

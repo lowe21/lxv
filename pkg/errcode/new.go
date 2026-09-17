@@ -23,15 +23,9 @@ func New(args ...any) error {
 		switch arg := args[0].(type) {
 		case error:
 			if exception, ok := errors.AsType[*hessian2.GenericException](arg); ok {
-				desc := gstr.StrEx(exception.Error(), "desc = ")
-				code = gcode.CodeNil.Code()
-				subCode = gstr.StrTillEx(desc, "@")
-				message = gstr.StrEx(desc, "@")
-				detail = desc
+				subCode, message = parseRPCError(exception)
 			} else if err, ok := errors.AsType[*triple_protocol.Error](arg); ok {
-				code = gcode.CodeNil.Code()
-				subCode = gstr.StrTillEx(err.Message(), "@")
-				message = gstr.StrEx(err.Message(), "@")
+				subCode, message = parseRPCError(err)
 			} else {
 				switch errorCode := gerror.Code(arg).(type) {
 				case ErrCode:
@@ -57,7 +51,6 @@ func New(args ...any) error {
 			detail = arg.Detail()
 		case string:
 			if argsLen > 1 {
-				code = gcode.CodeNil.Code()
 				subCode = arg
 			} else {
 				subCode = gcode.CodeInternalError.Message()
@@ -71,9 +64,7 @@ func New(args ...any) error {
 			}
 		}
 		if argsLen > 2 {
-			if arg, ok := args[2].(string); ok {
-				detail = arg
-			}
+			detail = args[2]
 		}
 	}
 
