@@ -44,6 +44,7 @@ func Init() {
 				}
 
 				graylog.Send(&graylog.Gelf{
+					Version:      graylog.GelfVersion,
 					Host:         g.Server().GetName(),
 					ShortMessage: content,
 					FullMessage:  stack,
