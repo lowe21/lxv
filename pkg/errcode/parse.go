@@ -8,7 +8,6 @@ import (
 	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/text/gregex"
-	"github.com/gogf/gf/v2/text/gstr"
 )
 
 func Parse(err error) (subCode, message string) {
@@ -56,15 +55,10 @@ func Parse(err error) (subCode, message string) {
 func parseRPCError(err error) (subCode, message string) {
 	message = err.Error()
 
-	match, _ := gregex.MatchString(`\{([\s\S]*)\}`, message)
-	if len(match) != 2 {
-		return
-	}
-
-	message = match[1]
-	if index := gstr.Pos(message, "@"); index >= 0 {
-		subCode = message[:index]
-		message = gstr.TrimLeftStr(message[index+1:], "@")
+	match, _ := gregex.MatchString(`\{([^@{}]+)@+([\s\S]*)\}`, message)
+	if len(match) == 3 {
+		subCode = match[1]
+		message = match[2]
 	}
 
 	return
