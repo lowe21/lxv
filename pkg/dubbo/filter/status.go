@@ -31,7 +31,7 @@ func (s *status) OnResponse(_ context.Context, result result.Result, _ base.Invo
 		subCode, message := errcode.Parse(errcode.New(err))
 
 		result.SetError(
-			grpcstatus.Error(grpccodes.Internal, subCode+"@"+message),
+			grpcstatus.Error(grpccodes.Internal, "{"+subCode+"@"+message+"}"),
 		)
 	}
 

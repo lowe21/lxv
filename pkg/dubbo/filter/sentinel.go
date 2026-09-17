@@ -30,7 +30,7 @@ func (s *sentinel) Invoke(ctx context.Context, invoker base.Invoker, invocation 
 		subCode, message := errcode.Parse(errcode.ErrSystemBusy)
 
 		return &result.RPCResult{
-			Err: java_exception.NewThrowable(subCode + "@" + message),
+			Err: java_exception.NewThrowable("{" + subCode + "@" + message + "}"),
 		}
 	}
 	defer func() {
