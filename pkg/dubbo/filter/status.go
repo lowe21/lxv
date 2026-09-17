@@ -16,17 +16,17 @@ import (
 
 func init() {
 	extension.SetFilter("status", func() filter.Filter {
-		return &statusFilter{}
+		return &status{}
 	})
 }
 
-type statusFilter struct{}
+type status struct{}
 
-func (s *statusFilter) Invoke(ctx context.Context, invoker base.Invoker, invocation base.Invocation) result.Result {
+func (s *status) Invoke(ctx context.Context, invoker base.Invoker, invocation base.Invocation) result.Result {
 	return invoker.Invoke(ctx, invocation)
 }
 
-func (s *statusFilter) OnResponse(_ context.Context, result result.Result, _ base.Invoker, _ base.Invocation) result.Result {
+func (s *status) OnResponse(_ context.Context, result result.Result, _ base.Invoker, _ base.Invocation) result.Result {
 	if err := result.Error(); err != nil {
 		subCode, message := errcode.Parse(errcode.New(err))
 
