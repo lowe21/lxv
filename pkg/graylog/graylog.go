@@ -2,8 +2,8 @@ package graylog
 
 import (
 	"crypto/rand"
+	"fmt"
 	"log"
-	"math"
 	"time"
 
 	"github.com/gogf/gf/v2/encoding/gcompress"
@@ -19,10 +19,6 @@ type Graylog struct {
 }
 
 func (g *Graylog) Send(gelf *Gelf) {
-	if gelf != nil {
-		gelf.Version = g.options.Version
-	}
-
 	g.gelf <- gelf
 }
 
@@ -40,7 +36,8 @@ func (g *Graylog) worker() {
 					continue
 				}
 				for _, chunk := range chunks {
-					if conn.Send(chunk) != nil {
+					if err := conn.Send(chunk); err != nil {
+						log.Printf("send error, %v", err)
 						_ = conn.Close()
 						break loop
 					}
@@ -48,7 +45,7 @@ func (g *Graylog) worker() {
 			}
 		}
 
-		<-time.After(g.options.ReconnectInterval)
+		time.Sleep(g.options.ReconnectInterval)
 	}
 }
 
@@ -62,13 +59,20 @@ func (g *Graylog) compress(gelf *Gelf) (chunks [][]byte, err error) {
 	if err != nil {
 		return
 	}
-	if dataSize := len(data); dataSize > g.options.ChunkSize {
+	if dataSize := len(data); dataSize > g.options.MaxChunkSize {
 		id := make([]byte, 8)
 		if _, err = rand.Read(id); err != nil {
 			return
 		}
 
-		chunkNumber := int(math.Ceil(float64(dataSize) / float64(g.options.ChunkSize)))
+		headerSize := 12
+		if g.options.MaxChunkSize <= headerSize {
+			err = errcode.New(fmt.Sprintf("max chunk size must be greater than header size %d", headerSize))
+			return
+		}
+
+		chunkSize := g.options.MaxChunkSize - headerSize
+		chunkNumber := (dataSize + chunkSize - 1) / chunkSize
 		if chunkNumber > 128 {
 			err = errcode.New("chunks too large")
 			return
@@ -77,22 +81,18 @@ func (g *Graylog) compress(gelf *Gelf) (chunks [][]byte, err error) {
 		currentSize := 0
 		currentNumber := 0
 
-		for currentSize < dataSize && currentNumber < chunkNumber {
-			nextSize := currentSize + g.options.ChunkSize
+		for currentSize < dataSize {
+			nextSize := min(currentSize+chunkSize, dataSize)
 
 			chunk := []byte{0x1e, 0x0f}
 			chunk = append(chunk, id...)
 			chunk = append(chunk, byte(currentNumber))
 			chunk = append(chunk, byte(chunkNumber))
-			if nextSize < dataSize {
-				chunk = append(chunk, data[currentSize:nextSize]...)
-			} else {
-				chunk = append(chunk, data[currentSize:]...)
-			}
+			chunk = append(chunk, data[currentSize:nextSize]...)
 			chunks = append(chunks, chunk)
 
 			currentSize = nextSize
-			currentNumber += 1
+			currentNumber++
 		}
 	} else {
 		chunks = [][]byte{data}

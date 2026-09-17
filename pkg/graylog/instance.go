@@ -11,11 +11,11 @@ var (
 
 func instance() *Graylog {
 	once.Do(func() {
-		options := defaultOptions()
+		options := newOptions()
 
 		graylog = &Graylog{
 			options: options,
-			gelf:    make(chan *Gelf, options.QueueSize),
+			gelf:    make(chan *Gelf, options.MaxQueueSize),
 		}
 
 		for range options.WorkerNumber {

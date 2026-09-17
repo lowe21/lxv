@@ -9,23 +9,21 @@ import (
 
 const (
 	address           = "127.0.0.1:12201"
-	chunkSize         = 8192
-	queueSize         = 32
 	workerNumber      = 1
+	maxQueueSize      = 32
+	maxChunkSize      = 8192
 	reconnectInterval = "5s"
-	version           = "1.1"
 )
 
 type Options struct {
 	Address           string
-	ChunkSize         int
-	QueueSize         int
 	WorkerNumber      int
+	MaxQueueSize      int
+	MaxChunkSize      int
 	ReconnectInterval time.Duration
-	Version           string
 }
 
-func defaultOptions() *Options {
+func newOptions() *Options {
 	options := &Options{}
 	if err := g.Config().MustGet(nil, "graylog").Scan(options); err != nil {
 		panic(err)
@@ -34,20 +32,17 @@ func defaultOptions() *Options {
 	if options.Address == "" {
 		options.Address = address
 	}
-	if options.ChunkSize <= 0 {
-		options.ChunkSize = chunkSize
-	}
-	if options.QueueSize <= 0 {
-		options.QueueSize = queueSize
-	}
 	if options.WorkerNumber <= 0 {
 		options.WorkerNumber = workerNumber
 	}
+	if options.MaxQueueSize <= 0 {
+		options.MaxQueueSize = maxQueueSize
+	}
+	if options.MaxChunkSize <= 0 {
+		options.MaxChunkSize = maxChunkSize
+	}
 	if options.ReconnectInterval <= 0 {
 		options.ReconnectInterval = gconv.Duration(reconnectInterval)
-	}
-	if options.Version == "" {
-		options.Version = version
 	}
 
 	return options

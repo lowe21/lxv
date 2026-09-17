@@ -1,5 +1,7 @@
 package graylog
 
+const GelfVersion = "1.1"
+
 type Gelf struct {
 	Version      string  `json:"version"`
 	Host         string  `json:"host"`
