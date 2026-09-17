@@ -15,19 +15,18 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/gogf/gf/v2/net/gtrace"
-	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/gogf/gf/v2/util/gconv"
 )
 
 func init() {
 	extension.SetFilter("trace-server", func() filter.Filter {
-		return &traceServerFilter{}
+		return &traceServer{}
 	})
 }
 
-type traceServerFilter struct{}
+type traceServer struct{}
 
-func (t *traceServerFilter) Invoke(ctx context.Context, invoker base.Invoker, invocation base.Invocation) (res result.Result) {
+func (t *traceServer) Invoke(ctx context.Context, invoker base.Invoker, invocation base.Invocation) (res result.Result) {
 	traceID, _ := invocation.GetAttachment("trace-id")
 	if traceID == "" {
 		return invoker.Invoke(ctx, invocation)
@@ -35,7 +34,7 @@ func (t *traceServerFilter) Invoke(ctx context.Context, invoker base.Invoker, in
 
 	ctx, _ = gtrace.WithTraceID(ctx, traceID)
 	ctx, span := otel.Tracer("dubbo.apache.org/dubbo-go/v3", trace.WithInstrumentationVersion(constant.Version)).
-		Start(ctx, gstr.Join([]string{invoker.GetURL().Service(), invocation.MethodName()}, "."), trace.WithSpanKind(trace.SpanKindServer), trace.WithAttributes(gtrace.CommonLabels()...))
+		Start(ctx, invoker.GetURL().Service()+"."+invocation.MethodName(), trace.WithSpanKind(trace.SpanKindServer), trace.WithAttributes(gtrace.CommonLabels()...))
 	span.SetAttributes(
 		attribute.String("dubbo.url", invoker.GetURL().String()),
 	)
@@ -43,11 +42,14 @@ func (t *traceServerFilter) Invoke(ctx context.Context, invoker base.Invoker, in
 		attribute.String("dubbo.invoke.arguments", gconv.String(invocation.Arguments())),
 	))
 	defer func() {
-		span.AddEvent("dubbo.response", trace.WithAttributes(
-			attribute.String("dubbo.response.result", gconv.String(res.Result())),
-		))
-		if err := res.Error(); err != nil {
-			span.SetStatus(codes.Error, err.Error())
+		if res != nil {
+			span.AddEvent("dubbo.response", trace.WithAttributes(
+				attribute.String("dubbo.response.result", gconv.String(res.Result())),
+			))
+			if err := res.Error(); err != nil {
+				span.RecordError(err)
+				span.SetStatus(codes.Error, err.Error())
+			}
 		}
 		span.End()
 	}()
@@ -55,6 +57,6 @@ func (t *traceServerFilter) Invoke(ctx context.Context, invoker base.Invoker, in
 	return invoker.Invoke(ctx, invocation)
 }
 
-func (t *traceServerFilter) OnResponse(_ context.Context, result result.Result, _ base.Invoker, _ base.Invocation) result.Result {
+func (t *traceServer) OnResponse(_ context.Context, result result.Result, _ base.Invoker, _ base.Invocation) result.Result {
 	return result
 }

@@ -13,18 +13,18 @@ import (
 
 func init() {
 	extension.SetFilter("trace-client", func() filter.Filter {
-		return &traceClientFilter{}
+		return &traceClient{}
 	})
 }
 
-type traceClientFilter struct{}
+type traceClient struct{}
 
-func (t *traceClientFilter) Invoke(ctx context.Context, invoker base.Invoker, invocation base.Invocation) result.Result {
+func (t *traceClient) Invoke(ctx context.Context, invoker base.Invoker, invocation base.Invocation) result.Result {
 	invocation.SetAttachment("trace-id", gtrace.GetTraceID(ctx))
 
 	return invoker.Invoke(ctx, invocation)
 }
 
-func (t *traceClientFilter) OnResponse(_ context.Context, result result.Result, _ base.Invoker, _ base.Invocation) result.Result {
+func (t *traceClient) OnResponse(_ context.Context, result result.Result, _ base.Invoker, _ base.Invocation) result.Result {
 	return result
 }

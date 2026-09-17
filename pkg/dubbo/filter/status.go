@@ -8,10 +8,8 @@ import (
 	"dubbo.apache.org/dubbo-go/v3/protocol/base"
 	"dubbo.apache.org/dubbo-go/v3/protocol/result"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
-	"github.com/gogf/gf/v2/text/gstr"
+	grpccodes "google.golang.org/grpc/codes"
+	grpcstatus "google.golang.org/grpc/status"
 
 	"github.com/lowe21/lxv/pkg/errcode"
 )
@@ -33,7 +31,7 @@ func (s *statusFilter) OnResponse(_ context.Context, result result.Result, _ bas
 		subCode, message := errcode.Parse(errcode.New(err))
 
 		result.SetError(
-			status.Error(codes.Internal, gstr.Join([]string{subCode, message}, "@")),
+			grpcstatus.Error(grpccodes.Internal, subCode+"@"+message),
 		)
 	}
 
