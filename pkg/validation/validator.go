@@ -2,31 +2,25 @@ package validation
 
 import (
 	"context"
+	"maps"
 
-	"github.com/gogf/gf/v2/container/gmap"
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/util/gconv"
 	"github.com/gogf/gf/v2/util/gvalid"
 )
 
-func Validator(ctx context.Context, pointer any, args ...any) (err error) {
-	data := gmap.New()
+func Validator(ctx context.Context, pointer any, values ...any) (err error) {
+	data := make(map[string]any)
 
-	if len(args) > 0 {
-		for _, arg := range args {
-			for key, value := range gconv.Map(arg) {
-				data.Set(key, value)
-			}
+	if len(values) > 0 {
+		for _, value := range values {
+			maps.Copy(data, gconv.Map(value))
 		}
 	} else {
 		if request := ghttp.RequestFromCtx(ctx); request != nil {
-			for key, value := range request.GetRequestMap() {
-				data.Set(key, value)
-			}
+			data = request.GetRequestMap()
 		} else {
-			for key, value := range gconv.Map(pointer) {
-				data.Set(key, value)
-			}
+			data = gconv.Map(pointer)
 		}
 	}
 
