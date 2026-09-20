@@ -29,7 +29,7 @@ type Options struct {
 	UnlockTimeout     time.Duration
 }
 
-func defaultOptions() *Options {
+func newOptions() *Options {
 	options := &Options{}
 	if err := g.Config().MustGet(nil, "redsync").Scan(options); err != nil {
 		panic(err)

@@ -13,10 +13,10 @@ import (
 )
 
 type RedMutex struct {
-	options *Options
-	mutex   *redsync.Mutex
-	locked  atomic.Bool
-	cancel  context.CancelFunc
+	options      *Options
+	mutex        *redsync.Mutex
+	locked       atomic.Bool
+	extendCancel context.CancelFunc
 }
 
 func (r *RedMutex) Lock(ctx context.Context) (err error) {
@@ -60,8 +60,8 @@ func (r *RedMutex) TryLock(ctx context.Context) (err error) {
 }
 
 func (r *RedMutex) Unlock(ctx context.Context) (err error) {
-	if r.cancel != nil {
-		r.cancel()
+	if r.extendCancel != nil {
+		r.extendCancel()
 	}
 
 	unlockCtx, unlockCancel := context.WithTimeout(ctx, r.options.UnlockTimeout)
@@ -85,17 +85,16 @@ func (r *RedMutex) Unlock(ctx context.Context) (err error) {
 
 func (r *RedMutex) extend(ctx context.Context) {
 	extendCtx, extendCancel := context.WithCancel(ctx)
-	r.cancel = extendCancel
+	r.extendCancel = extendCancel
 
 	interval := r.options.Expiry / 3
 	if interval <= 0 {
 		interval = time.Second
 	}
 
-	extendCount := 0
 	extendMax := 0
 	if r.options.ExtendMaxDuration > 0 {
-		extendMax = int(r.options.ExtendMaxDuration.Seconds() / interval.Seconds())
+		extendMax = int(r.options.ExtendMaxDuration / interval)
 		if extendMax <= 0 {
 			extendMax = 1
 		}
@@ -103,15 +102,19 @@ func (r *RedMutex) extend(ctx context.Context) {
 
 	go func() {
 		ticker := time.NewTicker(interval)
-		defer ticker.Stop()
+		defer func() {
+			ticker.Stop()
+			extendCancel()
+		}()
 
+		extendCount := 0
 		for {
 			select {
 			case <-ticker.C:
 				if extendMax > 0 && extendCount >= extendMax {
 					return
 				}
-				if _, err := r.mutex.ExtendContext(ctx); err != nil {
+				if _, err := r.mutex.ExtendContext(extendCtx); err != nil {
 					if extendCtx.Err() != nil {
 						return
 					}

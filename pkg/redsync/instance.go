@@ -18,7 +18,7 @@ var (
 
 func instance() *RedSync {
 	once.Do(func() {
-		options := defaultOptions()
+		options := newOptions()
 
 		redSync = &RedSync{
 			options: options,
