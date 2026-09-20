@@ -34,16 +34,17 @@ func (j *JWT) Generate(payload *Payload) (token string, expires time.Time, err e
 
 func (j *JWT) Parse(token string, leeway bool) (payload *Payload, err error) {
 	claims := &Claims{}
-	options := []jwtv5.ParserOption{jwtv5.WithIssuer(j.options.Issuer)}
+
+	options := []jwtv5.ParserOption{
+		jwtv5.WithValidMethods([]string{jwtv5.SigningMethodHS256.Alg()}),
+		jwtv5.WithIssuer(j.options.Issuer),
+		jwtv5.WithExpirationRequired(),
+	}
 	if leeway {
 		options = append(options, jwtv5.WithLeeway(j.options.Leeway))
 	}
 
-	if _, err = jwtv5.ParseWithClaims(token, claims, func(token *jwtv5.Token) (any, error) {
-		if _, ok := token.Method.(*jwtv5.SigningMethodHMAC); !ok {
-			return nil, jwtv5.ErrHashUnavailable
-		}
-
+	if _, err = jwtv5.ParseWithClaims(token, claims, func(*jwtv5.Token) (any, error) {
 		return j.options.Key, nil
 	}, options...); err != nil {
 		return

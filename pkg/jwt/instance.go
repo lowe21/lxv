@@ -13,17 +13,17 @@ var (
 func instance() *JWT {
 	once.Do(func() {
 		jwt = &JWT{
-			options: defaultOptions(),
+			options: newOptions(),
 		}
 	})
 
 	return jwt
 }
 
-func Generate(payload *Payload) (token string, expires time.Time, err error) {
+func Generate(payload *Payload) (string, time.Time, error) {
 	return instance().Generate(payload)
 }
 
-func Parse(token string, leeway bool) (payload *Payload, err error) {
+func Parse(token string, leeway bool) (*Payload, error) {
 	return instance().Parse(token, leeway)
 }

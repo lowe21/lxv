@@ -71,6 +71,10 @@ func APIRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFun
 				if err != nil {
 					return
 				}
+				if payload == nil {
+					err = errcode.New(errcode.ErrAuthFailed, "payload is nil")
+					return
+				}
 
 				sessionKey = payload.SessionKey
 				if sessionKey == "" {

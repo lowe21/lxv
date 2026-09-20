@@ -8,29 +8,28 @@ import (
 )
 
 const (
-	key     = "64f17cb03b83fe8dc188865b5a250920"
 	expires = "30d"
 	leeway  = "7d"
 )
 
 type Options struct {
-	Issuer  string
 	Key     []byte
+	Issuer  string
 	Expires time.Duration
 	Leeway  time.Duration
 }
 
-func defaultOptions() *Options {
+func newOptions() *Options {
 	options := &Options{}
 	if err := g.Config().MustGet(nil, "jwt").Scan(options); err != nil {
 		panic(err)
 	}
 
+	if len(options.Key) < 32 {
+		panic("jwt key must be at least 32 bytes")
+	}
 	if options.Issuer == "" {
 		options.Issuer = g.Server().GetName()
-	}
-	if len(options.Key) == 0 {
-		options.Key = []byte(key)
 	}
 	if options.Expires <= 0 {
 		options.Expires = gconv.Duration(expires)
