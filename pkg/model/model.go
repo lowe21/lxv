@@ -17,9 +17,9 @@ type Model interface {
 	Ctx(ctx context.Context) *gdb.Model
 }
 
-func Transaction(model Model, ctx context.Context, fn func(context.Context, gdb.TX) error) (err error) {
+func Transaction(mod Model, ctx context.Context, fn func(context.Context, gdb.TX) error) (err error) {
 	if fn != nil {
-		isTx := gdb.TXFromCtx(ctx, model.DB().GetGroup()) != nil
+		isTx := gdb.TXFromCtx(ctx, mod.DB().GetGroup()) != nil
 
 		invalidator := cacheInvalidatorFromCtx(ctx)
 		if isTx && invalidator == nil {
@@ -29,66 +29,74 @@ func Transaction(model Model, ctx context.Context, fn func(context.Context, gdb.
 			invalidator = &cacheInvalidator{}
 		}
 
-		if err = model.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+		if err = mod.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 			return fn(context.WithValue(ctx, invalidatorCtxKey, invalidator), tx)
 		}); err != nil {
 			return
 		}
 
 		if !isTx {
-			invalidator.Flush(ctx, model.DB())
+			invalidator.Flush(ctx, mod.DB())
 		}
 	}
 
 	return
 }
 
-func Exist(model Model, ctx context.Context, opts ...Option) (exist bool, err error) {
+func Exist(mod Model, ctx context.Context, opts ...Option) (exist bool, err error) {
 	options := parseOptions(opts...)
 
-	m := model.Ctx(ctx)
+	model := mod.Ctx(ctx)
 	for _, condition := range options.conditions {
-		m = m.Where(condition)
+		model = model.Where(condition)
 	}
 
-	return m.Exist()
+	return model.Exist()
 }
 
-func Count(model Model, ctx context.Context, opts ...Option) (count int, err error) {
+func Count(mod Model, ctx context.Context, opts ...Option) (count int, err error) {
 	options := parseOptions(opts...)
 
-	m := model.Ctx(ctx)
+	model := mod.Ctx(ctx)
 	for _, condition := range options.conditions {
-		m = m.Where(condition)
+		model = model.Where(condition)
 	}
 
-	return m.Count()
+	return model.Count()
 }
 
-func Sum(model Model, ctx context.Context, opts ...Option) (sum float64, err error) {
+func Sum(mod Model, ctx context.Context, opts ...Option) (sum float64, err error) {
 	options := parseOptions(opts...)
 
-	m := model.Ctx(ctx)
+	model := mod.Ctx(ctx)
 	for _, condition := range options.conditions {
-		m = m.Where(condition)
+		model = model.Where(condition)
 	}
 
-	return m.Sum(options.column)
+	return model.Sum(options.column)
 }
 
-func Avg(model Model, ctx context.Context, opts ...Option) (avg float64, err error) {
+func Avg(mod Model, ctx context.Context, opts ...Option) (avg float64, err error) {
 	options := parseOptions(opts...)
 
-	m := model.Ctx(ctx)
+	model := mod.Ctx(ctx)
 	for _, condition := range options.conditions {
-		m = m.Where(condition)
+		model = model.Where(condition)
 	}
 
-	return m.Avg(options.column)
+	return model.Avg(options.column)
 }
 
-func FindList(model Model, ctx context.Context, opts ...Option) (result gdb.Result, totalCount int, err error) {
+func FindList(mod Model, ctx context.Context, opts ...Option) (result gdb.Result, totalCount int, err error) {
 	options := parseOptions(opts...)
+
+	model := mod.Ctx(ctx)
+	for _, condition := range options.conditions {
+		model = model.Where(condition)
+	}
+	if options.order != "" {
+		model = model.Order(options.order)
+	}
 	if options.page <= 0 {
 		options.page = 1
 	}
@@ -96,129 +104,121 @@ func FindList(model Model, ctx context.Context, opts ...Option) (result gdb.Resu
 		options.limit = 10
 	}
 
-	m := model.Ctx(ctx)
-	for _, condition := range options.conditions {
-		m = m.Where(condition)
-	}
-	if options.order != "" {
-		m = m.Order(options.order)
-	}
-
-	return m.Page(options.page, options.limit).AllAndCount(true)
+	return model.Page(options.page, options.limit).AllAndCount(true)
 }
 
-func FindAll(model Model, ctx context.Context, opts ...Option) (result gdb.Result, err error) {
+func FindAll(mod Model, ctx context.Context, opts ...Option) (result gdb.Result, err error) {
 	options := parseOptions(opts...)
 
-	m := model.Ctx(ctx)
+	model := mod.Ctx(ctx)
 	for _, condition := range options.conditions {
-		m = m.Where(condition)
+		model = model.Where(condition)
 	}
 	if options.order != "" {
-		m = m.Order(options.order)
+		model = model.Order(options.order)
 	}
 	if options.limit > 0 {
-		m = m.Limit(options.limit)
+		model = model.Limit(options.limit)
 	}
 
-	return m.All()
+	return model.All()
 }
 
-func FindOne(model Model, ctx context.Context, opts ...Option) (record gdb.Record, err error) {
+func FindOne(mod Model, ctx context.Context, opts ...Option) (record gdb.Record, err error) {
 	options := parseOptions(opts...)
 	if len(options.uk) == 0 {
 		err = errcode.New(gcode.CodeDbOperationError, "unique key is empty")
 		return
 	}
 
-	m := model.Ctx(ctx).Where(options.uk)
+	model := mod.Ctx(ctx).Where(options.uk)
 	if len(options.conditions) > 0 {
 		for _, condition := range options.conditions {
-			m = m.Where(condition)
+			model = model.Where(condition)
 		}
 	} else {
-		m = m.Cache(
-			cacheOption(model.DB(), model.Table(), options.cacheKey, time.Hour),
+		model = model.Cache(
+			cacheOption(mod.DB(), mod.Table(), options.cacheKey, time.Hour),
 		)
 	}
 
-	return m.One()
+	return model.One()
 }
 
-func InsertOne(model Model, ctx context.Context, do any, opts ...Option) (result sql.Result, err error) {
+func InsertOne(mod Model, ctx context.Context, do any, opts ...Option) (result sql.Result, err error) {
 	options := parseOptions(opts...)
 
-	m := model.Ctx(ctx)
+	model := mod.Ctx(ctx)
 	if len(options.cacheKeys) > 0 {
 		cacheKeys := make([]string, 0, len(options.cacheKeys))
 		for _, cacheKey := range options.cacheKeys {
-			cacheKeys = append(cacheKeys, cacheOption(model.DB(), model.Table(), cacheKey).Name)
+			cacheKeys = append(cacheKeys, cacheOption(mod.DB(), mod.Table(), cacheKey).Name)
 		}
-		m = m.Hook(
-			cacheHandler(model.DB(), cacheKeys...),
+		model = model.Hook(
+			cacheHandler(mod.DB(), cacheKeys...),
 		)
 	}
 
-	return m.Insert(do)
+	return model.Insert(do)
 }
 
-func UpdateOne(model Model, ctx context.Context, do any, opts ...Option) (result sql.Result, err error) {
-	options := parseOptions(opts...)
-	if len(options.uk) == 0 {
-		err = errcode.New(gcode.CodeDbOperationError, "unique key is empty")
-		return
-	}
-
-	m := model.Ctx(ctx).Where(options.uk)
-	for _, condition := range options.conditions {
-		m = m.Where(condition)
-	}
-	if len(options.cacheKeys) > 0 {
-		cacheKeys := make([]string, 0, len(options.cacheKeys))
-		for _, cacheKey := range options.cacheKeys {
-			cacheKeys = append(cacheKeys, cacheOption(model.DB(), model.Table(), cacheKey).Name)
-		}
-		m = m.Hook(
-			cacheHandler(model.DB(), cacheKeys...),
-		)
-	}
-
-	return m.Update(do)
-}
-
-func DeleteOne(model Model, ctx context.Context, opts ...Option) (result sql.Result, err error) {
+func UpdateOne(mod Model, ctx context.Context, do any, opts ...Option) (result sql.Result, err error) {
 	options := parseOptions(opts...)
 	if len(options.uk) == 0 {
 		err = errcode.New(gcode.CodeDbOperationError, "unique key is empty")
 		return
 	}
 
-	m := model.Ctx(ctx).Where(options.uk)
+	model := mod.Ctx(ctx).Where(options.uk)
 	for _, condition := range options.conditions {
-		m = m.Where(condition)
+		model = model.Where(condition)
 	}
 	if len(options.cacheKeys) > 0 {
 		cacheKeys := make([]string, 0, len(options.cacheKeys))
 		for _, cacheKey := range options.cacheKeys {
-			cacheKeys = append(cacheKeys, cacheOption(model.DB(), model.Table(), cacheKey).Name)
+			cacheKeys = append(cacheKeys, cacheOption(mod.DB(), mod.Table(), cacheKey).Name)
 		}
-		m = m.Hook(
-			cacheHandler(model.DB(), cacheKeys...),
+		model = model.Hook(
+			cacheHandler(mod.DB(), cacheKeys...),
 		)
 	}
 
-	return m.Delete()
+	return model.Update(do)
 }
 
-func DeleteCache(model Model, ctx context.Context, opts ...Option) (err error) {
+func DeleteOne(mod Model, ctx context.Context, opts ...Option) (result sql.Result, err error) {
+	options := parseOptions(opts...)
+	if len(options.uk) == 0 {
+		err = errcode.New(gcode.CodeDbOperationError, "unique key is empty")
+		return
+	}
+
+	model := mod.Ctx(ctx).Where(options.uk)
+	for _, condition := range options.conditions {
+		model = model.Where(condition)
+	}
+	if len(options.cacheKeys) > 0 {
+		cacheKeys := make([]string, 0, len(options.cacheKeys))
+		for _, cacheKey := range options.cacheKeys {
+			cacheKeys = append(cacheKeys, cacheOption(mod.DB(), mod.Table(), cacheKey).Name)
+		}
+		model = model.Hook(
+			cacheHandler(mod.DB(), cacheKeys...),
+		)
+	}
+
+	return model.Delete()
+}
+
+func DeleteCache(mod Model, ctx context.Context, opts ...Option) (err error) {
 	options := parseOptions(opts...)
 
 	if len(options.cacheKeys) > 0 {
 		cacheKeys := make([]string, 0, len(options.cacheKeys))
 		for _, cacheKey := range options.cacheKeys {
-			cacheKeys = append(cacheKeys, cacheOption(model.DB(), model.Table(), cacheKey).Name)
+			cacheKeys = append(cacheKeys, cacheOption(mod.DB(), mod.Table(), cacheKey).Name)
 		}
-		cacheInvalidate(ctx, model.DB(), cacheKeys...)
+		cacheInvalidate(ctx, mod.DB(), cacheKeys...)
 	}
 
 	return

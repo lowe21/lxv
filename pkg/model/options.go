@@ -3,7 +3,6 @@ package model
 import (
 	"github.com/gogf/gf/v2/crypto/gsha256"
 	"github.com/gogf/gf/v2/database/gdb"
-	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/gogf/gf/v2/util/gconv"
 )
 
@@ -18,8 +17,8 @@ type Options struct {
 	uk         gdb.Map
 	cacheKey   string
 	cacheKeys  []string
-	column     string
 	conditions []gdb.Map
+	column     string
 	order      string
 	page       int
 	limit      int
@@ -43,18 +42,18 @@ func WithInvalidateUK(invalidateUK gdb.Map) Option {
 	}
 }
 
-func WithColumn(column string) Option {
-	return func(options *Options) {
-		if column != "" {
-			options.column = column
-		}
-	}
-}
-
 func WithCondition(condition gdb.Map) Option {
 	return func(options *Options) {
 		if condition != nil {
 			options.conditions = append(options.conditions, condition)
+		}
+	}
+}
+
+func WithColumn(column string) Option {
+	return func(options *Options) {
+		if column != "" {
+			options.column = column
 		}
 	}
 }
@@ -64,7 +63,7 @@ func WithOrder(column string, sort Sort) Option {
 		if column != "" {
 			options.order = column
 			if sort == Asc || sort == Desc {
-				options.order = gstr.Join([]string{options.order, string(sort)}, " ")
+				options.order = column + " " + string(sort)
 			}
 		}
 	}

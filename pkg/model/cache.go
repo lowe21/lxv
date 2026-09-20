@@ -59,7 +59,6 @@ func (c *cacheInvalidator) DeleteKeys(group string, keys []string) {
 
 func (c *cacheInvalidator) Flush(ctx context.Context, db gdb.DB) {
 	group := db.GetGroup()
-
 	keys := c.GetKeys(group)
 	if len(keys) > 0 {
 		ctx = context.WithoutCancel(ctx)
@@ -92,13 +91,12 @@ func cacheInvalidatorFromCtx(ctx context.Context) (invalidator *cacheInvalidator
 func cacheInvalidate(ctx context.Context, db gdb.DB, keys ...string) {
 	set := gset.NewStrSet()
 	for _, key := range keys {
-		if key == "" {
-			continue
+		if key != "" {
+			if !gstr.HasPrefix(key, "SelectCache:") {
+				key = gstr.Join([]string{"SelectCache", key}, ":")
+			}
+			set.Add(key)
 		}
-		if !gstr.HasPrefix(key, "SelectCache:") {
-			key = gstr.Join([]string{"SelectCache", key}, ":")
-		}
-		set.Add(key)
 	}
 	if set.Size() == 0 {
 		return
@@ -164,12 +162,12 @@ func cacheOption(db gdb.DB, table, key string, ttl ...time.Duration) (option gdb
 	}
 
 	if key != "" {
-		key = gstr.Join([]string{":", key}, "")
+		key = ":" + key
 	}
 
 	return gdb.CacheOption{
 		Duration: duration,
-		Name:     gstr.Join([]string{db.GetGroup(), "@", db.GetSchema(), "#", table, key}, ""),
+		Name:     db.GetGroup() + "@" + db.GetSchema() + "#" + table + key,
 		Force:    true,
 	}
 }
