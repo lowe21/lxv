@@ -9,7 +9,6 @@ import (
 	"github.com/gogf/gf/v2/container/gset"
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/gogf/gf/v2/util/gconv"
 )
 
@@ -88,14 +87,11 @@ func cacheInvalidatorFromCtx(ctx context.Context) (invalidator *cacheInvalidator
 	return
 }
 
-func cacheInvalidate(ctx context.Context, db gdb.DB, keys ...string) {
+func cacheInvalidate(ctx context.Context, db gdb.DB, table string, keys ...string) {
 	set := gset.NewStrSet()
 	for _, key := range keys {
 		if key != "" {
-			if !gstr.HasPrefix(key, "SelectCache:") {
-				key = gstr.Join([]string{"SelectCache", key}, ":")
-			}
-			set.Add(key)
+			set.Add("SelectCache:" + cacheOption(db, table, key).Name)
 		}
 	}
 	if set.Size() == 0 {
@@ -123,12 +119,12 @@ func cacheInvalidate(ctx context.Context, db gdb.DB, keys ...string) {
 	}
 }
 
-func cacheHandler(db gdb.DB, keys ...string) (handler gdb.HookHandler) {
+func cacheHandler(db gdb.DB, table string, keys ...string) (handler gdb.HookHandler) {
 	return gdb.HookHandler{
 		Insert: func(ctx context.Context, input *gdb.HookInsertInput) (result sql.Result, err error) {
 			defer func() {
 				if err == nil {
-					cacheInvalidate(ctx, db, keys...)
+					cacheInvalidate(ctx, db, table, keys...)
 				}
 			}()
 
@@ -137,7 +133,7 @@ func cacheHandler(db gdb.DB, keys ...string) (handler gdb.HookHandler) {
 		Update: func(ctx context.Context, input *gdb.HookUpdateInput) (result sql.Result, err error) {
 			defer func() {
 				if err == nil {
-					cacheInvalidate(ctx, db, keys...)
+					cacheInvalidate(ctx, db, table, keys...)
 				}
 			}()
 
@@ -146,7 +142,7 @@ func cacheHandler(db gdb.DB, keys ...string) (handler gdb.HookHandler) {
 		Delete: func(ctx context.Context, input *gdb.HookDeleteInput) (result sql.Result, err error) {
 			defer func() {
 				if err == nil {
-					cacheInvalidate(ctx, db, keys...)
+					cacheInvalidate(ctx, db, table, keys...)
 				}
 			}()
 

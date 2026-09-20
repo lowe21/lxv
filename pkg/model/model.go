@@ -150,12 +150,8 @@ func InsertOne(mod Model, ctx context.Context, do any, opts ...Option) (result s
 
 	model := mod.Ctx(ctx)
 	if len(options.cacheKeys) > 0 {
-		cacheKeys := make([]string, 0, len(options.cacheKeys))
-		for _, cacheKey := range options.cacheKeys {
-			cacheKeys = append(cacheKeys, cacheOption(mod.DB(), mod.Table(), cacheKey).Name)
-		}
 		model = model.Hook(
-			cacheHandler(mod.DB(), cacheKeys...),
+			cacheHandler(mod.DB(), mod.Table(), options.cacheKeys...),
 		)
 	}
 
@@ -174,12 +170,8 @@ func UpdateOne(mod Model, ctx context.Context, do any, opts ...Option) (result s
 		model = model.Where(condition)
 	}
 	if len(options.cacheKeys) > 0 {
-		cacheKeys := make([]string, 0, len(options.cacheKeys))
-		for _, cacheKey := range options.cacheKeys {
-			cacheKeys = append(cacheKeys, cacheOption(mod.DB(), mod.Table(), cacheKey).Name)
-		}
 		model = model.Hook(
-			cacheHandler(mod.DB(), cacheKeys...),
+			cacheHandler(mod.DB(), mod.Table(), options.cacheKeys...),
 		)
 	}
 
@@ -198,12 +190,8 @@ func DeleteOne(mod Model, ctx context.Context, opts ...Option) (result sql.Resul
 		model = model.Where(condition)
 	}
 	if len(options.cacheKeys) > 0 {
-		cacheKeys := make([]string, 0, len(options.cacheKeys))
-		for _, cacheKey := range options.cacheKeys {
-			cacheKeys = append(cacheKeys, cacheOption(mod.DB(), mod.Table(), cacheKey).Name)
-		}
 		model = model.Hook(
-			cacheHandler(mod.DB(), cacheKeys...),
+			cacheHandler(mod.DB(), mod.Table(), options.cacheKeys...),
 		)
 	}
 
@@ -214,11 +202,7 @@ func DeleteCache(mod Model, ctx context.Context, opts ...Option) (err error) {
 	options := parseOptions(opts...)
 
 	if len(options.cacheKeys) > 0 {
-		cacheKeys := make([]string, 0, len(options.cacheKeys))
-		for _, cacheKey := range options.cacheKeys {
-			cacheKeys = append(cacheKeys, cacheOption(mod.DB(), mod.Table(), cacheKey).Name)
-		}
-		cacheInvalidate(ctx, mod.DB(), cacheKeys...)
+		cacheInvalidate(ctx, mod.DB(), mod.Table(), options.cacheKeys...)
 	}
 
 	return
