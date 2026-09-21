@@ -93,6 +93,7 @@ func (c *CronTask) RemoveTask(name string) {
 func (c *CronTask) Stop() {
 	if c.cancel != nil {
 		c.cancel()
+		c.cancel = nil
 	}
 	c.cron.Stop()
 }

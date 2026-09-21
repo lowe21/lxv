@@ -62,6 +62,7 @@ func (r *RedMutex) TryLock(ctx context.Context) (err error) {
 func (r *RedMutex) Unlock(ctx context.Context) (err error) {
 	if r.extendCancel != nil {
 		r.extendCancel()
+		r.extendCancel = nil
 	}
 
 	unlockCtx, unlockCancel := context.WithTimeout(ctx, r.options.UnlockTimeout)
