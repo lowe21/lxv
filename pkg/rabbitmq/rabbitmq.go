@@ -36,6 +36,7 @@ func (r *RabbitMQ) Start() {
 		return
 	}
 
+	r.started = true
 	r.ctx, r.cancel = context.WithCancel(context.Background())
 
 	rows := []string{"#", "EXCHANGE TYPE", "EXCHANGE NAME", "ROUTING KEY", "LISTENER", "STATUS"}
@@ -81,8 +82,6 @@ func (r *RabbitMQ) Start() {
 	} else {
 		_ = table.Close()
 	}
-
-	r.started = true
 }
 
 func (r *RabbitMQ) Connection() (connection *amqp.Connection, err error) {
@@ -197,11 +196,10 @@ func (r *RabbitMQ) QueueDelete(channel *amqp.Channel, exchangeName, routingKey s
 
 func (r *RabbitMQ) Stop() {
 	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
 	if r.started {
 		r.started = false
 	} else {
+		r.mutex.Unlock()
 		return
 	}
 
@@ -209,10 +207,15 @@ func (r *RabbitMQ) Stop() {
 		r.cancel()
 		r.cancel = nil
 	}
+	r.mutex.Unlock()
 
 	r.consumer.wg.Wait()
 
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
 	if r.connection != nil {
 		_ = r.connection.Close()
+		r.connection = nil
 	}
 }
