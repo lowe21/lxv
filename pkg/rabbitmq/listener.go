@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-
-	"github.com/gogf/gf/v2/text/gstr"
 )
 
 type (
@@ -44,7 +42,7 @@ func SetQueueListener(queueListener QueueListener) {
 	if queueListeners == nil {
 		queueListeners = make(map[string]QueueListener)
 	}
-	name := gstr.Join([]string{exchangeName, routingKey}, ".")
+	name := exchangeName + "." + routingKey
 	if _, ok := queueListeners[name]; ok {
 		panic(fmt.Sprintf("queueListener already exists, exchangeName: %s, routingKey: %s", exchangeName, routingKey))
 	}

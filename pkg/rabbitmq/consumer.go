@@ -17,7 +17,7 @@ import (
 	"github.com/lowe21/lxv/pkg/errcode"
 )
 
-type DeliveryHandler func(ctx context.Context, delivery *amqp.Delivery) (err error)
+type DeliveryHandler func(ctx context.Context, delivery *amqp.Delivery) error
 
 type Consumer struct {
 	*RabbitMQ
@@ -45,12 +45,12 @@ func (c *Consumer) Listen(ctx context.Context, exchangeType, exchangeName, routi
 		switch exchangeType {
 		case amqp.ExchangeDirect:
 			if gstr.HasSuffix(delivery.RoutingKey, c.options.ConsumeDLXSuffix) {
-				return listener.(QueueListener).ConsumeDLX(ctx, message)
+				err = listener.(QueueListener).ConsumeDLX(ctx, message)
+			} else {
+				err = listener.(QueueListener).Consume(ctx, message)
 			}
-
-			return listener.(QueueListener).Consume(ctx, message)
 		case amqp.ExchangeFanout:
-			return listener.(SubscribeListener).Consume(ctx, message)
+			err = listener.(SubscribeListener).Consume(ctx, message)
 		}
 
 		return
@@ -61,10 +61,9 @@ func (c *Consumer) Listen(ctx context.Context, exchangeType, exchangeName, routi
 		if err = c.Consume(ctx, exchangeName, routingKey, deliveryHandler, opts...); err != nil {
 			return
 		}
-
-		return c.ConsumeDLX(ctx, exchangeName, routingKey, deliveryHandler, opts...)
+		err = c.ConsumeDLX(ctx, exchangeName, routingKey, deliveryHandler, opts...)
 	case amqp.ExchangeFanout:
-		return c.Subscribe(ctx, exchangeName, deliveryHandler)
+		err = c.Subscribe(ctx, exchangeName, deliveryHandler)
 	}
 
 	return
@@ -128,30 +127,27 @@ func (c *Consumer) Consume(ctx context.Context, exchangeName, routingKey string,
 					}
 				}
 				func() {
-					deliveryCtx, deliveryCancel := context.WithCancel(ctx)
-					defer deliveryCancel()
-
 					if ctx.Err() != nil {
 						_ = delivery.Nack(false, true)
-					} else if deliveryHandler(deliveryCtx, &delivery) != nil {
+					} else if deliveryHandler(ctx, &delivery) != nil {
 						retryCount := gconv.Int(delivery.Headers["x-retry-count"])
 						if retryCount >= options.RetryMax {
 							delivery.RoutingKey = c.RoutingKey(delivery.RoutingKey, c.options.ConsumeDLXSuffix)
 							delivery.Expiration = ""
 						}
-						delay := time.Duration(float64(options.RetryIntervalMin) * math.Pow(options.RetryFactor, float64(retryCount)))
-						if delay > options.RetryIntervalMax {
-							delay = options.RetryIntervalMax
-						}
+						delay := min(
+							time.Duration(float64(options.RetryIntervalMin)*math.Pow(options.RetryFactor, float64(retryCount))),
+							options.RetryIntervalMax,
+						)
 						retryCount += 1
 
 						if c.producer.Publish(ctx, exchangeName, delivery.RoutingKey, delivery.Body, WithDelay(delay.Milliseconds()), WithRetryCount(retryCount)) != nil {
-							_ = delivery.Reject(false)
+							_ = delivery.Nack(false, true)
 						} else {
-							_ = delivery.Ack(true)
+							_ = delivery.Ack(false)
 						}
 					} else {
-						_ = delivery.Ack(true)
+						_ = delivery.Ack(false)
 					}
 				}()
 			case <-notifyCancel:
@@ -240,13 +236,10 @@ func (c *Consumer) ConsumeDLX(ctx context.Context, exchangeName, routingKey stri
 					}
 				}
 				func() {
-					deliveryCtx, deliveryCancel := context.WithCancel(ctx)
-					defer deliveryCancel()
-
 					if ctx.Err() != nil {
 						_ = delivery.Nack(false, true)
-					} else if deliveryHandler(deliveryCtx, &delivery) == nil {
-						_ = delivery.Ack(true)
+					} else if deliveryHandler(ctx, &delivery) == nil {
+						_ = delivery.Ack(false)
 					}
 				}()
 			case <-notifyCancel:
@@ -320,15 +313,12 @@ func (c *Consumer) Subscribe(ctx context.Context, exchangeName string, deliveryH
 					}
 				}
 				func() {
-					deliveryCtx, deliveryCancel := context.WithCancel(ctx)
-					defer deliveryCancel()
-
 					if ctx.Err() != nil {
 						_ = delivery.Nack(false, true)
-					} else if deliveryHandler(deliveryCtx, &delivery) != nil {
+					} else if deliveryHandler(ctx, &delivery) != nil {
 						_ = delivery.Reject(false)
 					} else {
-						_ = delivery.Ack(true)
+						_ = delivery.Ack(false)
 					}
 				}()
 			case <-notifyCancel:

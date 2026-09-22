@@ -14,7 +14,7 @@ var (
 
 func instance() *RabbitMQ {
 	once.Do(func() {
-		options := defaultOptions()
+		options := newOptions()
 
 		rabbitMQ = &RabbitMQ{
 			options: options,
@@ -34,11 +34,11 @@ func Start() {
 	instance().Start()
 }
 
-func Publish(ctx context.Context, exchangeName, routingKey string, message *Message, opts ...ProducerOption) (err error) {
+func Publish(ctx context.Context, exchangeName, routingKey string, message *Message, opts ...ProducerOption) error {
 	return instance().producer.Publish(ctx, exchangeName, routingKey, gjson.MustEncode(message), opts...)
 }
 
-func Broadcast(ctx context.Context, exchangeName string, message *Message, opts ...ProducerOption) (err error) {
+func Broadcast(ctx context.Context, exchangeName string, message *Message, opts ...ProducerOption) error {
 	return instance().producer.Broadcast(ctx, exchangeName, gjson.MustEncode(message), opts...)
 }
 

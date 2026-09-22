@@ -41,7 +41,7 @@ type Options struct {
 	ConsumeDLXSuffix  string
 }
 
-func defaultOptions() *Options {
+func newOptions() *Options {
 	options := &Options{}
 	if err := g.Config().MustGet(nil, "rabbitmq").Scan(options); err != nil {
 		panic(err)

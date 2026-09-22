@@ -6,6 +6,8 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 
 	"github.com/gogf/gf/v2/util/gconv"
+
+	"github.com/lowe21/lxv/pkg/errcode"
 )
 
 type Producer struct {
@@ -21,6 +23,10 @@ func (p *Producer) Publish(ctx context.Context, exchangeName, routingKey string,
 		_ = channel.Close()
 	}()
 
+	if err = channel.Confirm(false); err != nil {
+		return
+	}
+
 	options := &ProducerOptions{}
 	for _, opt := range opts {
 		if opt != nil {
@@ -33,7 +39,7 @@ func (p *Producer) Publish(ctx context.Context, exchangeName, routingKey string,
 		expiration = gconv.String(options.Expiration)
 	}
 
-	return channel.PublishWithContext(ctx, p.ExchangeName(exchangeName), routingKey, false, false, amqp.Publishing{
+	confirmation, err := channel.PublishWithDeferredConfirmWithContext(ctx, p.ExchangeName(exchangeName), routingKey, false, false, amqp.Publishing{
 		Headers: amqp.Table{
 			"x-delay":       options.Delay,
 			"x-retry-count": options.RetryCount,
@@ -42,6 +48,19 @@ func (p *Producer) Publish(ctx context.Context, exchangeName, routingKey string,
 		Expiration:   expiration,
 		Body:         body,
 	})
+	if err != nil {
+		return
+	}
+
+	acked, err := confirmation.WaitContext(ctx)
+	if err != nil {
+		return
+	}
+	if !acked {
+		err = errcode.New("publish was not confirmed")
+	}
+
+	return
 }
 
 func (p *Producer) Broadcast(ctx context.Context, exchangeName string, body []byte, opts ...ProducerOption) (err error) {
