@@ -1,9 +1,8 @@
 package crontask
 
 import (
+	"context"
 	"sync"
-
-	"github.com/gogf/gf/v2/os/gcron"
 )
 
 var (
@@ -15,7 +14,6 @@ func instance() *CronTask {
 	once.Do(func() {
 		cronTask = &CronTask{
 			options: newOptions(),
-			cron:    gcron.New(),
 		}
 	})
 
@@ -24,6 +22,14 @@ func instance() *CronTask {
 
 func Start() {
 	instance().Start()
+}
+
+func AddTask(ctx context.Context, name, pattern string, tasker Tasker) error {
+	return instance().AddTask(ctx, name, pattern, tasker)
+}
+
+func RemoveTask(name string) error {
+	return instance().RemoveTask(name)
 }
 
 func Stop() {

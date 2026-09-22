@@ -22,12 +22,18 @@ type CronTask struct {
 	cron    *gcron.Cron
 	ctx     context.Context
 	cancel  context.CancelFunc
-	once    sync.Once
+	mutex   sync.RWMutex
+	started bool
 }
 
 func (c *CronTask) Start() {
-	c.once.Do(func() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	if !c.started {
+		c.cron = gcron.New()
 		c.ctx, c.cancel = context.WithCancel(context.Background())
+		c.started = true
 
 		rows := []string{"#", "NAME", "PATTERN", "TASKER", "STATUS"}
 		table := tablewriter.NewTable(os.Stdout, tablewriter.WithConfig(tablewriter.Config{
@@ -50,7 +56,7 @@ func (c *CronTask) Start() {
 				g.Log().Error(c.ctx, err)
 				continue
 			}
-			if err = c.AddTask(c.ctx, option.Name, option.Pattern, tasker); err != nil {
+			if err = c.addTask(c.ctx, option.Name, option.Pattern, tasker); err != nil {
 				g.Log().Error(c.ctx, err)
 				continue
 			}
@@ -65,10 +71,23 @@ func (c *CronTask) Start() {
 		} else {
 			_ = table.Close()
 		}
-	})
+	}
 }
 
 func (c *CronTask) AddTask(ctx context.Context, name, pattern string, tasker Tasker) (err error) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	if c.started {
+		err = c.addTask(ctx, name, pattern, tasker)
+	} else {
+		err = errcode.New("crontask is not started")
+	}
+
+	return
+}
+
+func (c *CronTask) addTask(ctx context.Context, name, pattern string, tasker Tasker) (err error) {
 	if _, err = c.cron.AddSingleton(ctx, pattern, func(ctx context.Context) {
 		defer func() {
 			if exception := recover(); exception != nil {
@@ -86,14 +105,32 @@ func (c *CronTask) AddTask(ctx context.Context, name, pattern string, tasker Tas
 	return
 }
 
-func (c *CronTask) RemoveTask(name string) {
-	c.cron.Remove(name)
+func (c *CronTask) RemoveTask(name string) (err error) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	if c.started {
+		c.cron.Remove(name)
+	} else {
+		err = errcode.New("crontask is not started")
+	}
+
+	return
 }
 
 func (c *CronTask) Stop() {
-	if c.cancel != nil {
-		c.cancel()
-		c.cancel = nil
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	if c.started {
+		c.started = false
+	} else {
+		return
 	}
-	c.cron.Stop()
+
+	c.cancel()
+	c.cancel = nil
+
+	c.cron.Close()
+	c.cron = nil
 }
