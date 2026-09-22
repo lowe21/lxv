@@ -22,65 +22,63 @@ type RabbitMQ struct {
 	connection *amqp.Connection
 	producer   *Producer
 	consumer   *Consumer
-	started    bool
 	ctx        context.Context
 	cancel     context.CancelFunc
 	mutex      sync.RWMutex
+	started    bool
 }
 
 func (r *RabbitMQ) Start() {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	if r.started {
-		return
-	}
+	if !r.started {
+		r.ctx, r.cancel = context.WithCancel(context.Background())
+		r.started = true
 
-	r.started = true
-	r.ctx, r.cancel = context.WithCancel(context.Background())
-
-	rows := []string{"#", "EXCHANGE TYPE", "EXCHANGE NAME", "ROUTING KEY", "LISTENER", "STATUS"}
-	table := tablewriter.NewTable(os.Stdout, tablewriter.WithConfig(tablewriter.Config{
-		Header: tw.CellConfig{
-			Merging: tw.CellMerging{Mode: tw.MergeBoth},
-		},
-		Row: tw.CellConfig{
-			Alignment: tw.CellAlignment{PerColumn: []tw.Align{tw.AlignCenter}},
-		},
-	}))
-	table.Header(slices.Repeat([]string{"RABBITMQ"}, len(rows)))
-	if err := table.Append(rows); err != nil {
-		panic(err)
-	}
-
-	index := 0
-	for _, queueListener := range queueListeners {
-		exchangeName := queueListener.ExchangeName()
-		routingKey := queueListener.RoutingKey()
-		if err := r.consumer.Listen(r.ctx, amqp.ExchangeDirect, exchangeName, routingKey, queueListener); err != nil {
+		rows := []string{"#", "EXCHANGE TYPE", "EXCHANGE NAME", "ROUTING KEY", "LISTENER", "STATUS"}
+		table := tablewriter.NewTable(os.Stdout, tablewriter.WithConfig(tablewriter.Config{
+			Header: tw.CellConfig{
+				Merging: tw.CellMerging{Mode: tw.MergeBoth},
+			},
+			Row: tw.CellConfig{
+				Alignment: tw.CellAlignment{PerColumn: []tw.Align{tw.AlignCenter}},
+			},
+		}))
+		table.Header(slices.Repeat([]string{"RABBITMQ"}, len(rows)))
+		if err := table.Append(rows); err != nil {
 			panic(err)
 		}
-		index += 1
-		if err := table.Append(index, amqp.ExchangeDirect, exchangeName, routingKey, fmt.Sprintf("%T", queueListener), "LISTEN"); err != nil {
-			panic(err)
-		}
-	}
 
-	for _, subscribeListener := range subscribeListeners {
-		exchangeName := subscribeListener.ExchangeName()
-		if err := r.consumer.Listen(r.ctx, amqp.ExchangeFanout, exchangeName, "", subscribeListener); err != nil {
-			panic(err)
+		index := 0
+		for _, queueListener := range queueListeners {
+			exchangeName := queueListener.ExchangeName()
+			routingKey := queueListener.RoutingKey()
+			if err := r.consumer.Listen(r.ctx, amqp.ExchangeDirect, exchangeName, routingKey, queueListener); err != nil {
+				panic(err)
+			}
+			index += 1
+			if err := table.Append(index, amqp.ExchangeDirect, exchangeName, routingKey, fmt.Sprintf("%T", queueListener), "LISTEN"); err != nil {
+				panic(err)
+			}
 		}
-		index += 1
-		if err := table.Append(index, amqp.ExchangeFanout, exchangeName, "", fmt.Sprintf("%T", subscribeListener), "LISTEN"); err != nil {
-			panic(err)
-		}
-	}
 
-	if index > 0 {
-		_ = table.Render()
-	} else {
-		_ = table.Close()
+		for _, subscribeListener := range subscribeListeners {
+			exchangeName := subscribeListener.ExchangeName()
+			if err := r.consumer.Listen(r.ctx, amqp.ExchangeFanout, exchangeName, "", subscribeListener); err != nil {
+				panic(err)
+			}
+			index += 1
+			if err := table.Append(index, amqp.ExchangeFanout, exchangeName, "", fmt.Sprintf("%T", subscribeListener), "LISTEN"); err != nil {
+				panic(err)
+			}
+		}
+
+		if index > 0 {
+			_ = table.Render()
+		} else {
+			_ = table.Close()
+		}
 	}
 }
 
@@ -203,10 +201,8 @@ func (r *RabbitMQ) Stop() {
 		return
 	}
 
-	if r.cancel != nil {
-		r.cancel()
-		r.cancel = nil
-	}
+	r.cancel()
+	r.cancel = nil
 	r.mutex.Unlock()
 
 	r.consumer.wg.Wait()
