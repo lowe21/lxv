@@ -48,20 +48,20 @@ func (c *CryptoRSA) Sign(privateKey, content string, opts ...Option) (sign strin
 		return
 	}
 
-	signed := make([]byte, 0)
+	data := make([]byte, 0)
 	if pss {
-		signed, err = rsa.SignPSS(rand.Reader, key, hash, digest, &rsa.PSSOptions{
-			Hash:       hash,
+		data, err = rsa.SignPSS(rand.Reader, key, hash, digest, &rsa.PSSOptions{
 			SaltLength: rsa.PSSSaltLengthEqualsHash,
+			Hash:       hash,
 		})
 	} else {
-		signed, err = rsa.SignPKCS1v15(rand.Reader, key, hash, digest)
+		data, err = rsa.SignPKCS1v15(rand.Reader, key, hash, digest)
 	}
 	if err != nil {
 		return
 	}
 
-	return base64.StdEncoding.EncodeToString(signed), nil
+	return base64.StdEncoding.EncodeToString(data), nil
 }
 
 func (c *CryptoRSA) Verify(publicKey, content, sign string, opts ...Option) (err error) {
@@ -85,22 +85,24 @@ func (c *CryptoRSA) Verify(publicKey, content, sign string, opts ...Option) (err
 		sign = gstr.Replace(sign, " ", "+")
 	}
 
-	signed, err := base64.StdEncoding.DecodeString(sign)
+	data, err := base64.StdEncoding.DecodeString(sign)
 	if err != nil {
 		return
 	}
-	if len(signed) != key.Size() {
+	if len(data) != key.Size() {
 		return errcode.New("invalid RSA signature length")
 	}
 
 	if pss {
-		return rsa.VerifyPSS(key, hash, digest, signed, &rsa.PSSOptions{
-			Hash:       hash,
+		err = rsa.VerifyPSS(key, hash, digest, data, &rsa.PSSOptions{
 			SaltLength: rsa.PSSSaltLengthEqualsHash,
+			Hash:       hash,
 		})
+	} else {
+		err = rsa.VerifyPKCS1v15(key, hash, digest, data)
 	}
 
-	return rsa.VerifyPKCS1v15(key, hash, digest, signed)
+	return
 }
 
 func (c *CryptoRSA) parsePrivateKey(privateKey string) (key *rsa.PrivateKey, err error) {
@@ -127,11 +129,9 @@ func (c *CryptoRSA) parsePrivateKey(privateKey string) (key *rsa.PrivateKey, err
 		return
 	}
 
-	if err = c.verifyPrivateKey(key); err != nil {
-		return
+	if err = c.verifyPrivateKey(key); err == nil {
+		key.Precompute()
 	}
-
-	key.Precompute()
 
 	return
 }
