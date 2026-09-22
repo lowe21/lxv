@@ -6,7 +6,7 @@ import (
 
 const (
 	hashType   = SHA256
-	minKeyBits = 2048
+	minKeyBits = 1024
 )
 
 type Options struct {

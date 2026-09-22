@@ -3,6 +3,7 @@ package cryptorsa
 import (
 	"bytes"
 	"crypto"
+	_ "crypto/md5"
 	"crypto/rand"
 	"crypto/rsa"
 	_ "crypto/sha1"
@@ -19,6 +20,7 @@ import (
 )
 
 const (
+	MD5       = "md5"
 	SHA1      = "sha1"
 	SHA256    = "sha256"
 	SHA384    = "sha384"
@@ -32,12 +34,7 @@ type CryptoRSA struct {
 	options *Options
 }
 
-func (c *CryptoRSA) Sign(privateKey, content string, opts ...Option) (sign string, err error) {
-	key, err := c.parsePrivateKey(privateKey)
-	if err != nil {
-		return
-	}
-
+func (c *CryptoRSA) Sign(privateKey *rsa.PrivateKey, content string, opts ...Option) (sign string, err error) {
 	hash, pss, err := c.hash(opts...)
 	if err != nil {
 		return
@@ -50,12 +47,12 @@ func (c *CryptoRSA) Sign(privateKey, content string, opts ...Option) (sign strin
 
 	data := make([]byte, 0)
 	if pss {
-		data, err = rsa.SignPSS(rand.Reader, key, hash, digest, &rsa.PSSOptions{
+		data, err = rsa.SignPSS(rand.Reader, privateKey, hash, digest, &rsa.PSSOptions{
 			SaltLength: rsa.PSSSaltLengthEqualsHash,
 			Hash:       hash,
 		})
 	} else {
-		data, err = rsa.SignPKCS1v15(rand.Reader, key, hash, digest)
+		data, err = rsa.SignPKCS1v15(rand.Reader, privateKey, hash, digest)
 	}
 	if err != nil {
 		return
@@ -64,12 +61,7 @@ func (c *CryptoRSA) Sign(privateKey, content string, opts ...Option) (sign strin
 	return base64.StdEncoding.EncodeToString(data), nil
 }
 
-func (c *CryptoRSA) Verify(publicKey, content, sign string, opts ...Option) (err error) {
-	key, err := c.parsePublicKey(publicKey)
-	if err != nil {
-		return
-	}
-
+func (c *CryptoRSA) Verify(publicKey *rsa.PublicKey, content, sign string, opts ...Option) (err error) {
 	hash, pss, err := c.hash(opts...)
 	if err != nil {
 		return
@@ -80,81 +72,76 @@ func (c *CryptoRSA) Verify(publicKey, content, sign string, opts ...Option) (err
 		return
 	}
 
-	sign = gstr.Trim(sign)
-	if gstr.Contains(sign, " ") {
-		sign = gstr.Replace(sign, " ", "+")
-	}
-
 	data, err := base64.StdEncoding.DecodeString(sign)
 	if err != nil {
 		return
 	}
-	if len(data) != key.Size() {
+	if len(data) != publicKey.Size() {
 		return errcode.New("invalid RSA signature length")
 	}
 
 	if pss {
-		err = rsa.VerifyPSS(key, hash, digest, data, &rsa.PSSOptions{
+		err = rsa.VerifyPSS(publicKey, hash, digest, data, &rsa.PSSOptions{
 			SaltLength: rsa.PSSSaltLengthEqualsHash,
 			Hash:       hash,
 		})
 	} else {
-		err = rsa.VerifyPKCS1v15(key, hash, digest, data)
+		err = rsa.VerifyPKCS1v15(publicKey, hash, digest, data)
 	}
 
 	return
 }
 
-func (c *CryptoRSA) parsePrivateKey(privateKey string) (key *rsa.PrivateKey, err error) {
-	der, pemType, err := c.decodeKey(privateKey)
+func (c *CryptoRSA) ParsePrivateKey(key string) (privateKey *rsa.PrivateKey, err error) {
+	der, pemType, err := c.decodeKey(key)
 	if err != nil {
 		return
 	}
 
 	switch pemType {
 	case "RSA PRIVATE KEY":
-		key, err = c.parsePKCS1PrivateKey(der)
+		privateKey, err = c.parsePKCS1PrivateKey(der)
 	case "PRIVATE KEY":
-		key, err = c.parsePKCS8PrivateKey(der)
+		privateKey, err = c.parsePKCS8PrivateKey(der)
 	case "ENCRYPTED PRIVATE KEY", "RSA PRIVATE KEY, ENCRYPTED":
 		err = errcode.New("RSA private key format is not supported")
 		return
 	default:
-		key, err = c.parsePKCS1PrivateKey(der)
+		privateKey, err = c.parsePKCS1PrivateKey(der)
 		if err != nil {
-			key, err = c.parsePKCS8PrivateKey(der)
+			privateKey, err = c.parsePKCS8PrivateKey(der)
 		}
 	}
 	if err != nil {
 		return
 	}
 
-	if err = c.verifyPrivateKey(key); err == nil {
-		key.Precompute()
+	if err = c.verifyPrivateKey(privateKey); err == nil {
+		privateKey.Precompute()
 	}
 
 	return
 }
 
-func (c *CryptoRSA) parsePublicKey(publicKey string) (key *rsa.PublicKey, err error) {
-	der, pemType, err := c.decodeKey(publicKey)
+func (c *CryptoRSA) ParsePublicKey(key string) (publicKey *rsa.PublicKey, err error) {
+	der, pemType, err := c.decodeKey(key)
 	if err != nil {
 		return
 	}
 
 	switch pemType {
 	case "RSA PUBLIC KEY":
-		key, err = c.parsePKCS1PublicKey(der)
+		publicKey, err = c.parsePKCS1PublicKey(der)
 	case "PUBLIC KEY":
-		key, err = c.parsePKIXPublicKey(der)
+		publicKey, err = c.parsePKIXPublicKey(der)
 	case "CERTIFICATE", "TRUSTED CERTIFICATE":
-		key, err = c.parseCertificatePublicKey(der)
+		publicKey, err = c.parseCertificatePublicKey(der)
 	default:
-		key, err = c.parsePKCS1PublicKey(der)
+		publicKey, err = c.parsePKCS1PublicKey(der)
 		if err != nil {
-			key, err = c.parsePKIXPublicKey(der)
+			publicKey, err = c.parsePKIXPublicKey(der)
 			if err != nil {
-				key, err = c.parseCertificatePublicKey(der)
+				publicKey, err = c.parseCertificatePublicKey(der)
 			}
 		}
 	}
@@ -162,7 +149,7 @@ func (c *CryptoRSA) parsePublicKey(publicKey string) (key *rsa.PublicKey, err er
 		return
 	}
 
-	if err = c.verifyPublicKey(key); err != nil {
+	if err = c.verifyPublicKey(publicKey); err != nil {
 		return
 	}
 
@@ -203,17 +190,17 @@ func (c *CryptoRSA) decodeKey(key string) (der []byte, pemType string, err error
 	return
 }
 
-func (c *CryptoRSA) parsePKCS1PrivateKey(der []byte) (key *rsa.PrivateKey, err error) {
+func (c *CryptoRSA) parsePKCS1PrivateKey(der []byte) (privateKey *rsa.PrivateKey, err error) {
 	return x509.ParsePKCS1PrivateKey(der)
 }
 
-func (c *CryptoRSA) parsePKCS8PrivateKey(der []byte) (key *rsa.PrivateKey, err error) {
+func (c *CryptoRSA) parsePKCS8PrivateKey(der []byte) (privateKey *rsa.PrivateKey, err error) {
 	parsed, err := x509.ParsePKCS8PrivateKey(der)
 	if err != nil {
 		return
 	}
 
-	key, ok := parsed.(*rsa.PrivateKey)
+	privateKey, ok := parsed.(*rsa.PrivateKey)
 	if !ok {
 		err = errcode.New("PKCS#8 private key is not RSA")
 	}
@@ -221,17 +208,17 @@ func (c *CryptoRSA) parsePKCS8PrivateKey(der []byte) (key *rsa.PrivateKey, err e
 	return
 }
 
-func (c *CryptoRSA) parsePKCS1PublicKey(der []byte) (key *rsa.PublicKey, err error) {
+func (c *CryptoRSA) parsePKCS1PublicKey(der []byte) (publicKey *rsa.PublicKey, err error) {
 	return x509.ParsePKCS1PublicKey(der)
 }
 
-func (c *CryptoRSA) parsePKIXPublicKey(der []byte) (key *rsa.PublicKey, err error) {
+func (c *CryptoRSA) parsePKIXPublicKey(der []byte) (publicKey *rsa.PublicKey, err error) {
 	parsed, err := x509.ParsePKIXPublicKey(der)
 	if err != nil {
 		return
 	}
 
-	key, ok := parsed.(*rsa.PublicKey)
+	publicKey, ok := parsed.(*rsa.PublicKey)
 	if !ok {
 		err = errcode.New("PKIX public key is not RSA")
 	}
@@ -239,13 +226,13 @@ func (c *CryptoRSA) parsePKIXPublicKey(der []byte) (key *rsa.PublicKey, err erro
 	return
 }
 
-func (c *CryptoRSA) parseCertificatePublicKey(der []byte) (key *rsa.PublicKey, err error) {
+func (c *CryptoRSA) parseCertificatePublicKey(der []byte) (publicKey *rsa.PublicKey, err error) {
 	parsed, err := x509.ParseCertificate(der)
 	if err != nil {
 		return
 	}
 
-	key, ok := parsed.PublicKey.(*rsa.PublicKey)
+	publicKey, ok := parsed.PublicKey.(*rsa.PublicKey)
 	if !ok {
 		err = errcode.New("X.509 certificate public key is not RSA")
 	}
@@ -253,36 +240,36 @@ func (c *CryptoRSA) parseCertificatePublicKey(der []byte) (key *rsa.PublicKey, e
 	return
 }
 
-func (c *CryptoRSA) verifyPrivateKey(key *rsa.PrivateKey) (err error) {
-	if key == nil {
+func (c *CryptoRSA) verifyPrivateKey(privateKey *rsa.PrivateKey) (err error) {
+	if privateKey == nil {
 		return errcode.New("RSA private key is nil")
 	}
 
-	if err = key.Validate(); err != nil {
+	if err = privateKey.Validate(); err != nil {
 		return
 	}
 
-	if c.options.MinKeyBits > 0 && key.N.BitLen() < c.options.MinKeyBits {
+	if c.options.MinKeyBits > 0 && privateKey.N.BitLen() < c.options.MinKeyBits {
 		return errcode.New(fmt.Errorf("RSA private key minimum bits is %d", c.options.MinKeyBits))
 	}
 
-	if key.E < 3 || key.E%2 == 0 {
+	if privateKey.E < 3 || privateKey.E%2 == 0 {
 		err = errcode.New("invalid RSA private key exponent")
 	}
 
 	return
 }
 
-func (c *CryptoRSA) verifyPublicKey(key *rsa.PublicKey) (err error) {
-	if key == nil {
+func (c *CryptoRSA) verifyPublicKey(publicKey *rsa.PublicKey) (err error) {
+	if publicKey == nil {
 		return errcode.New("RSA public key is nil")
 	}
 
-	if c.options.MinKeyBits > 0 && key.N.BitLen() < c.options.MinKeyBits {
+	if c.options.MinKeyBits > 0 && publicKey.N.BitLen() < c.options.MinKeyBits {
 		return errcode.New(fmt.Errorf("RSA public key minimum bits is %d", c.options.MinKeyBits))
 	}
 
-	if key.E < 3 || key.E%2 == 0 {
+	if publicKey.E < 3 || publicKey.E%2 == 0 {
 		err = errcode.New("invalid RSA public key exponent")
 	}
 
@@ -298,6 +285,8 @@ func (c *CryptoRSA) hash(opts ...Option) (hash crypto.Hash, pss bool, err error)
 	}
 
 	switch options.HashType {
+	case MD5:
+		hash = crypto.MD5
 	case SHA1:
 		hash = crypto.SHA1
 	case SHA256, SHA256PSS:

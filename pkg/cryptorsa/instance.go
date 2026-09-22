@@ -1,6 +1,7 @@
 package cryptorsa
 
 import (
+	"crypto/rsa"
 	"sync"
 )
 
@@ -19,10 +20,18 @@ func instance() *CryptoRSA {
 	return cryptoRSA
 }
 
-func Sign(privateKey, content string, opts ...Option) (string, error) {
+func Sign(privateKey *rsa.PrivateKey, content string, opts ...Option) (string, error) {
 	return instance().Sign(privateKey, content, opts...)
 }
 
-func Verify(publicKey, content, sign string, opts ...Option) error {
+func Verify(publicKey *rsa.PublicKey, content, sign string, opts ...Option) error {
 	return instance().Verify(publicKey, content, sign, opts...)
+}
+
+func ParsePrivateKey(key string) (*rsa.PrivateKey, error) {
+	return instance().ParsePrivateKey(key)
+}
+
+func ParsePublicKey(key string) (*rsa.PublicKey, error) {
+	return instance().ParsePublicKey(key)
 }
