@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"context"
+	"sync"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
@@ -12,6 +13,8 @@ import (
 
 type Producer struct {
 	*RabbitMQ
+	connection *amqp.Connection
+	mutex      sync.RWMutex
 }
 
 func (p *Producer) Publish(ctx context.Context, exchangeName, routingKey string, body []byte, opts ...ProducerOption) (err error) {
@@ -57,7 +60,7 @@ func (p *Producer) Publish(ctx context.Context, exchangeName, routingKey string,
 		return
 	}
 	if !acked {
-		err = errcode.New("publish was not confirmed")
+		err = errcode.New("publish is not confirmed")
 	}
 
 	return
@@ -86,6 +89,29 @@ func (p *Producer) Broadcast(ctx context.Context, exchangeName string, body []by
 		DeliveryMode: amqp.Persistent,
 		Body:         body,
 	})
+}
+
+func (p *Producer) Channel() (channel *amqp.Channel, err error) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	if p.connection == nil || p.connection.IsClosed() {
+		properties := amqp.NewConnectionProperties()
+		properties["product"] = p.options.Product
+
+		p.connection, err = amqp.DialConfig(p.options.URI, amqp.Config{
+			Vhost:      p.options.Vhost,
+			ChannelMax: uint16(p.options.ChannelMax),
+			FrameSize:  p.options.FrameSize,
+			Heartbeat:  p.options.Heartbeat,
+			Properties: properties,
+		})
+		if err != nil {
+			return
+		}
+	}
+
+	return p.connection.Channel()
 }
 
 type ProducerOptions struct {

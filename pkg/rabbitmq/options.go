@@ -11,13 +11,12 @@ const (
 	vhost             = "/"
 	channelMax        = 0
 	frameSize         = 0
-	heartbeat         = "30s"
-	reconnectMax      = 10
-	reconnectInterval = "5s"
+	heartbeat         = "60s"
+	reconnectInterval = "10s"
 	retryMax          = 0
 	retryFactor       = 2
-	retryIntervalMin  = "3s"
-	retryIntervalMax  = "30s"
+	retryIntervalMin  = "5s"
+	retryIntervalMax  = "60s"
 	consumeConcurrent = 1
 	consumePrefetch   = 0
 	consumeDLXSuffix  = ".dlx"
@@ -30,7 +29,6 @@ type Options struct {
 	ChannelMax        int
 	FrameSize         int
 	Heartbeat         time.Duration
-	ReconnectMax      int
 	ReconnectInterval time.Duration
 	RetryMax          int
 	RetryFactor       float64
@@ -64,9 +62,6 @@ func newOptions() *Options {
 	}
 	if options.Heartbeat <= 0 {
 		options.Heartbeat = gconv.Duration(heartbeat)
-	}
-	if options.ReconnectMax <= 0 {
-		options.ReconnectMax = reconnectMax
 	}
 	if options.ReconnectInterval <= 0 {
 		options.ReconnectInterval = gconv.Duration(reconnectInterval)

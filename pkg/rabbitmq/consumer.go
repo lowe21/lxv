@@ -21,7 +21,9 @@ type DeliveryHandler func(ctx context.Context, delivery *amqp.Delivery) error
 
 type Consumer struct {
 	*RabbitMQ
-	wg sync.WaitGroup
+	connection *amqp.Connection
+	mutex      sync.RWMutex
+	wg         sync.WaitGroup
 }
 
 func (c *Consumer) Listen(ctx context.Context, exchangeType, exchangeName, routingKey string, listener any, opts ...ConsumerOption) (err error) {
@@ -89,6 +91,10 @@ func (c *Consumer) Consume(ctx context.Context, exchangeName, routingKey string,
 	}
 
 	consume := func() (err error) {
+		if err = ctx.Err(); err != nil {
+			return
+		}
+
 		channel, err := c.Channel()
 		if err != nil {
 			return
@@ -130,18 +136,19 @@ func (c *Consumer) Consume(ctx context.Context, exchangeName, routingKey string,
 					if ctx.Err() != nil {
 						_ = delivery.Nack(false, true)
 					} else if deliveryHandler(ctx, &delivery) != nil {
+						delay := time.Duration(0)
 						retryCount := gconv.Int(delivery.Headers["x-retry-count"])
 						if retryCount >= options.RetryMax {
 							delivery.RoutingKey = c.RoutingKey(delivery.RoutingKey, c.options.ConsumeDLXSuffix)
 							delivery.Expiration = ""
+						} else {
+							delay = min(
+								time.Duration(float64(options.RetryIntervalMin)*math.Pow(options.RetryFactor, float64(retryCount))),
+								options.RetryIntervalMax,
+							)
 						}
-						delay := min(
-							time.Duration(float64(options.RetryIntervalMin)*math.Pow(options.RetryFactor, float64(retryCount))),
-							options.RetryIntervalMax,
-						)
-						retryCount += 1
 
-						if c.producer.Publish(ctx, exchangeName, delivery.RoutingKey, delivery.Body, WithDelay(delay.Milliseconds()), WithRetryCount(retryCount)) != nil {
+						if c.producer.Publish(ctx, exchangeName, delivery.RoutingKey, delivery.Body, WithDelay(delay.Milliseconds()), WithRetryCount(retryCount+1)) != nil {
 							_ = delivery.Nack(false, true)
 						} else {
 							_ = delivery.Ack(false)
@@ -201,6 +208,10 @@ func (c *Consumer) ConsumeDLX(ctx context.Context, exchangeName, routingKey stri
 	}
 
 	consumeDLX := func() (err error) {
+		if err = ctx.Err(); err != nil {
+			return
+		}
+
 		channel, err := c.Channel()
 		if err != nil {
 			return
@@ -282,6 +293,10 @@ func (c *Consumer) Subscribe(ctx context.Context, exchangeName string, deliveryH
 	}
 
 	subscribe := func() (err error) {
+		if err = ctx.Err(); err != nil {
+			return
+		}
+
 		channel, err := c.Channel()
 		if err != nil {
 			return
@@ -350,6 +365,34 @@ func (c *Consumer) Subscribe(ctx context.Context, exchangeName string, deliveryH
 	})
 
 	return
+}
+
+func (c *Consumer) Channel() (channel *amqp.Channel, err error) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	if !c.started.Load() {
+		err = errcode.New("rabbitmq is not started")
+		return
+	}
+
+	if c.connection == nil || c.connection.IsClosed() {
+		properties := amqp.NewConnectionProperties()
+		properties["product"] = c.options.Product
+
+		c.connection, err = amqp.DialConfig(c.options.URI, amqp.Config{
+			Vhost:      c.options.Vhost,
+			ChannelMax: uint16(c.options.ChannelMax),
+			FrameSize:  c.options.FrameSize,
+			Heartbeat:  c.options.Heartbeat,
+			Properties: properties,
+		})
+		if err != nil {
+			return
+		}
+	}
+
+	return c.connection.Channel()
 }
 
 type ConsumerOptions struct {

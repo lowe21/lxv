@@ -6,6 +6,7 @@ import (
 	"os"
 	"slices"
 	"sync"
+	"sync/atomic"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/olekukonko/tablewriter/tw"
@@ -13,29 +14,23 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 
 	"github.com/gogf/gf/v2/text/gstr"
-
-	"github.com/lowe21/lxv/pkg/errcode"
 )
 
 type RabbitMQ struct {
-	options    *Options
-	connection *amqp.Connection
-	producer   *Producer
-	consumer   *Consumer
-	ctx        context.Context
-	cancel     context.CancelFunc
-	mutex      sync.RWMutex
-	started    bool
+	options  *Options
+	producer *Producer
+	consumer *Consumer
+	ctx      context.Context
+	cancel   context.CancelFunc
+	mutex    sync.RWMutex
+	started  atomic.Bool
 }
 
 func (r *RabbitMQ) Start() {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	if !r.started {
-		r.ctx, r.cancel = context.WithCancel(context.Background())
-		r.started = true
-
+	if !r.started.Load() {
 		rows := []string{"#", "EXCHANGE TYPE", "EXCHANGE NAME", "ROUTING KEY", "LISTENER", "STATUS"}
 		table := tablewriter.NewTable(os.Stdout, tablewriter.WithConfig(tablewriter.Config{
 			Header: tw.CellConfig{
@@ -49,6 +44,9 @@ func (r *RabbitMQ) Start() {
 		if err := table.Append(rows); err != nil {
 			panic(err)
 		}
+
+		r.ctx, r.cancel = context.WithCancel(context.Background())
+		r.started.Store(true)
 
 		index := 0
 		for _, queueListener := range queueListeners {
@@ -80,49 +78,6 @@ func (r *RabbitMQ) Start() {
 			_ = table.Close()
 		}
 	}
-}
-
-func (r *RabbitMQ) Connection() (connection *amqp.Connection, err error) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	if !r.started {
-		err = errcode.New("rabbitmq is not started")
-		return
-	}
-
-	if r.connection == nil || r.connection.IsClosed() {
-		properties := amqp.NewConnectionProperties()
-		properties["product"] = r.options.Product
-
-		r.connection, err = amqp.DialConfig(r.options.URI, amqp.Config{
-			Vhost:      r.options.Vhost,
-			ChannelMax: uint16(r.options.ChannelMax),
-			FrameSize:  r.options.FrameSize,
-			Heartbeat:  r.options.Heartbeat,
-			Properties: properties,
-			Recovery: &amqp.Recovery{
-				ReconnectionConfig: &amqp.ReconnectionConfig{
-					MaxRetryCount: r.options.ReconnectMax,
-					RetryInterval: r.options.ReconnectInterval,
-				},
-			},
-		})
-		if err != nil {
-			return
-		}
-	}
-
-	return r.connection, nil
-}
-
-func (r *RabbitMQ) Channel() (channel *amqp.Channel, err error) {
-	connection, err := r.Connection()
-	if err != nil {
-		return
-	}
-
-	return connection.Channel()
 }
 
 func (r *RabbitMQ) ExchangeName(exchangeName string) (name string) {
@@ -194,24 +149,20 @@ func (r *RabbitMQ) QueueDelete(channel *amqp.Channel, exchangeName, routingKey s
 
 func (r *RabbitMQ) Stop() {
 	r.mutex.Lock()
-	if r.started {
-		r.started = false
-	} else {
-		r.mutex.Unlock()
-		return
-	}
+	r.started.Store(false)
 
-	r.cancel()
-	r.cancel = nil
+	if r.cancel != nil {
+		r.cancel()
+		r.cancel = nil
+	}
 	r.mutex.Unlock()
 
-	r.consumer.wg.Wait()
-
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
-	if r.connection != nil {
-		_ = r.connection.Close()
-		r.connection = nil
+	r.consumer.mutex.Lock()
+	if r.consumer.connection != nil {
+		_ = r.consumer.connection.Close()
+		r.consumer.connection = nil
 	}
+	r.consumer.mutex.Unlock()
+
+	r.consumer.wg.Wait()
 }
