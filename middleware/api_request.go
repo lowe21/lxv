@@ -35,63 +35,53 @@ func APIRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFun
 			request.Middleware.Next()
 		}()
 
-		var (
-			ctx        = request.GetCtx()
-			sessionKey string
-		)
-
 		handler := request.GetServeHandler()
-		if handler != nil {
-			if !handler.Handler.Info.IsStrictRoute {
+		if handler == nil || !handler.Handler.Info.IsStrictRoute {
+			return
+		}
+
+		ctx := request.GetCtx()
+		payload := &jwt.Payload{}
+
+		if gconv.Bool(handler.GetMetaTag("notify")) {
+			return
+		}
+		if gconv.Bool(handler.GetMetaTag("auth")) {
+			authorization := request.Header.Get("Authorization")
+			if authorization == "" {
+				err = errcode.New(errcode.ErrAuthFailed, "Authorization header is empty")
 				return
 			}
-			if gconv.Bool(handler.GetMetaTag("notify")) {
+
+			fields := gstr.Fields(authorization)
+			if len(fields) != 2 || !gstr.Equal(fields[0], "Bearer") {
+				err = errcode.New(errcode.ErrAuthFailed, "Authorization header is invalid")
 				return
 			}
-			if gconv.Bool(handler.GetMetaTag("auth")) {
-				authorization := request.Header.Get("Authorization")
-				if authorization == "" {
-					err = errcode.New(errcode.ErrAuthFailed, "Authorization header is empty")
-					return
-				}
-
-				parts := gstr.Split(authorization, " ")
-				if len(parts) != 2 || parts[0] != "Bearer" {
-					err = errcode.New(errcode.ErrAuthFailed, "Authorization header is invalid")
-					return
-				}
-
-				if authHandler == nil {
-					err = errcode.New(errcode.ErrAuthFailed, "authHandler is nil")
-					return
-				}
-
-				payload := &jwt.Payload{}
-				payload, err = authHandler(ctx, parts[1], gconv.Bool(handler.GetMetaTag("leeway")))
-				if err != nil {
-					return
-				}
-				if payload == nil {
-					err = errcode.New(errcode.ErrAuthFailed, "payload is nil")
-					return
-				}
-
-				sessionKey = payload.SessionKey
-				if sessionKey == "" {
-					err = errcode.New(errcode.ErrAuthFailed, "sessionKey is empty")
-					return
-				}
-
-				defer func() {
-					if err == nil && payload != nil {
-						request.SetParamMap(gconv.Map(payload))
-					}
-				}()
-			}
-			if gconv.Bool(handler.GetMetaTag("upload")) {
+			if fields[1] == "" {
+				err = errcode.New(errcode.ErrAuthFailed, "Bearer token is empty")
 				return
 			}
-		} else {
+
+			if authHandler == nil {
+				err = errcode.New(errcode.ErrAuthFailed, "authHandler is nil")
+				return
+			}
+
+			payload, err = authHandler(ctx, fields[1], gconv.Bool(handler.GetMetaTag("leeway")))
+			if err != nil {
+				return
+			}
+			if payload == nil {
+				err = errcode.New(errcode.ErrAuthFailed, "payload is nil")
+				return
+			}
+			if payload.SessionKey == "" {
+				err = errcode.New(errcode.ErrAuthFailed, "sessionKey is empty")
+				return
+			}
+		}
+		if gconv.Bool(handler.GetMetaTag("upload")) {
 			return
 		}
 
@@ -101,24 +91,20 @@ func APIRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFun
 			return
 		}
 
-		if sessionKey != "" {
+		if payload.SessionKey != "" {
 			reqMap := gconv.MapStrStr(req)
-			reqKeys := slices.Sorted(maps.Keys(reqMap))
-			reqKeys = slices.DeleteFunc(reqKeys, func(key string) bool {
-				return key == "" || key == "sign"
-			})
-			reqValues := make([]string, 0, len(reqKeys))
-			for _, key := range reqKeys {
-				reqValues = append(reqValues, key+"="+reqMap[key])
+			reqValues := make([]string, 0, len(reqMap))
+			for _, key := range slices.Sorted(maps.Keys(reqMap)) {
+				if key != "" && key != "sign" {
+					reqValues = append(reqValues, key+"="+reqMap[key])
+				}
 			}
-			reqString := gstr.Join(reqValues, "&")
-
-			hash := hmac.New(sha256.New, []byte(sessionKey))
-			if _, err = hash.Write([]byte(reqString)); err != nil {
+			hash := hmac.New(sha256.New, []byte(payload.SessionKey))
+			if _, err = hash.Write([]byte(gstr.Join(reqValues, "&"))); err != nil {
 				return
 			}
-			sign, _ := hex.DecodeString(req.Sign)
-			if !hmac.Equal(hash.Sum(nil), sign) {
+			sign, decodeErr := hex.DecodeString(req.Sign)
+			if decodeErr != nil || !hmac.Equal(hash.Sum(nil), sign) {
 				err = errcode.ErrInvalidSign
 				return
 			}
@@ -130,14 +116,22 @@ func APIRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFun
 			}
 		}
 
-		content := gconv.Map(req.Content)
-		for key, value := range content {
-			newKey := gstr.CaseCamelLower(key)
-			if newKey != key {
-				content[newKey] = value
-				delete(content, key)
+		setParam := func(data any) {
+			dataMap := gconv.Map(data)
+			for _, key := range slices.Sorted(maps.Keys(dataMap)) {
+				if newKey := gstr.CaseCamelLower(key); newKey != key {
+					if _, ok := dataMap[newKey]; !ok {
+						dataMap[newKey] = dataMap[key]
+					}
+					delete(dataMap, key)
+				}
 			}
+			request.SetParamMap(dataMap)
 		}
-		request.SetParamMap(content)
+
+		setParam(req.Content)
+		if payload.SessionKey != "" {
+			setParam(payload)
+		}
 	}
 }
