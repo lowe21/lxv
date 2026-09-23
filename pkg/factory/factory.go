@@ -20,8 +20,8 @@ type Factory[T any] struct {
 	providers map[string]providerEntry[T]
 	cache     *gcache.Cache
 	ttl       time.Duration
-	sf        singleflight.Group
 	mutex     sync.RWMutex
+	sf        singleflight.Group
 }
 
 func (f *Factory[T]) SetProvider[O any](provider Provider[T, O]) {

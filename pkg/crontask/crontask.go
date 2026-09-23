@@ -31,10 +31,6 @@ func (c *CronTask) Start() {
 	defer c.mutex.Unlock()
 
 	if !c.started {
-		c.cron = gcron.New()
-		c.ctx, c.cancel = context.WithCancel(context.Background())
-		c.started = true
-
 		rows := []string{"#", "NAME", "PATTERN", "TASKER", "STATUS"}
 		table := tablewriter.NewTable(os.Stdout, tablewriter.WithConfig(tablewriter.Config{
 			Header: tw.CellConfig{
@@ -48,6 +44,9 @@ func (c *CronTask) Start() {
 		if err := table.Append(rows); err != nil {
 			panic(err)
 		}
+
+		c.cron = gcron.New()
+		c.ctx, c.cancel = context.WithCancel(context.Background())
 
 		index := 0
 		for _, option := range c.options {
@@ -71,6 +70,8 @@ func (c *CronTask) Start() {
 		} else {
 			_ = table.Close()
 		}
+
+		c.started = true
 	}
 }
 
@@ -122,15 +123,15 @@ func (c *CronTask) Stop() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	if c.started {
-		c.started = false
-	} else {
-		return
+	c.started = false
+
+	if c.cancel != nil {
+		c.cancel()
+		c.cancel = nil
 	}
 
-	c.cancel()
-	c.cancel = nil
-
-	c.cron.Close()
-	c.cron = nil
+	if c.cron != nil {
+		c.cron.Close()
+		c.cron = nil
+	}
 }
