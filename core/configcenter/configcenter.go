@@ -30,22 +30,20 @@ func Init() {
 				panic(err)
 			}
 
-			if _, err := dubbo.NewInstance(
-				dubbo.WithConfigCenter(
-					config_center.WithConfigCenter(centerConfig.Protocol),
-					config_center.WithAddress(centerConfig.Address),
-					config_center.WithDataID(centerConfig.DataId),
-					config_center.WithCluster(centerConfig.Cluster),
-					config_center.WithGroup(centerConfig.Group),
-					config_center.WithUsername(centerConfig.Username),
-					config_center.WithPassword(centerConfig.Password),
-					config_center.WithNamespace(centerConfig.Namespace),
-					config_center.WithAppID(centerConfig.AppID),
-					config_center.WithTimeout(gconv.Duration(centerConfig.Timeout)),
-					config_center.WithParams(centerConfig.Params),
-					config_center.WithFileExtYaml(),
-				),
-			); err != nil {
+			if _, err := dubbo.NewInstance(dubbo.WithConfigCenter(
+				config_center.WithConfigCenter(centerConfig.Protocol),
+				config_center.WithAddress(centerConfig.Address),
+				config_center.WithDataID(centerConfig.DataId),
+				config_center.WithCluster(centerConfig.Cluster),
+				config_center.WithGroup(centerConfig.Group),
+				config_center.WithUsername(centerConfig.Username),
+				config_center.WithPassword(centerConfig.Password),
+				config_center.WithNamespace(centerConfig.Namespace),
+				config_center.WithAppID(centerConfig.AppID),
+				config_center.WithTimeout(gconv.Duration(centerConfig.Timeout)),
+				config_center.WithParams(centerConfig.Params),
+				config_center.WithFileExtYaml(),
+			)); err != nil {
 				panic(err)
 			}
 

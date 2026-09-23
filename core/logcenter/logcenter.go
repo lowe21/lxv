@@ -29,10 +29,10 @@ func Init() {
 				delimiter := "\n"
 
 				for _, value := range input.Values {
-					if str := fmt.Sprintf("%+v", value); str != "" {
-						for _, item := range gstr.Split(str, delimiter) {
-							if item != content {
-								stacks = append(stacks, item)
+					if fmtStr := fmt.Sprintf("%+v", value); fmtStr != "" {
+						for _, str := range gstr.Split(fmtStr, delimiter) {
+							if str != content {
+								stacks = append(stacks, str)
 							}
 						}
 					}
