@@ -6,6 +6,7 @@ import (
 	"os"
 	"slices"
 	"sync"
+	"sync/atomic"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/olekukonko/tablewriter/tw"
@@ -23,14 +24,14 @@ type CronTask struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
 	mutex   sync.RWMutex
-	started bool
+	started atomic.Bool
 }
 
 func (c *CronTask) Start() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	if !c.started {
+	if !c.started.Load() {
 		rows := []string{"#", "NAME", "PATTERN", "TASKER", "STATUS"}
 		table := tablewriter.NewTable(os.Stdout, tablewriter.WithConfig(tablewriter.Config{
 			Header: tw.CellConfig{
@@ -47,6 +48,7 @@ func (c *CronTask) Start() {
 
 		c.cron = gcron.New()
 		c.ctx, c.cancel = context.WithCancel(context.Background())
+		c.started.Store(true)
 
 		index := 0
 		for _, option := range c.options {
@@ -70,8 +72,6 @@ func (c *CronTask) Start() {
 		} else {
 			_ = table.Close()
 		}
-
-		c.started = true
 	}
 }
 
@@ -79,7 +79,7 @@ func (c *CronTask) AddTask(ctx context.Context, name, pattern string, tasker Tas
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 
-	if c.started {
+	if c.started.Load() {
 		err = c.addTask(ctx, name, pattern, tasker)
 	} else {
 		err = errcode.New("crontask is not started")
@@ -110,7 +110,7 @@ func (c *CronTask) RemoveTask(name string) (err error) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 
-	if c.started {
+	if c.started.Load() {
 		c.cron.Remove(name)
 	} else {
 		err = errcode.New("crontask is not started")
@@ -123,7 +123,7 @@ func (c *CronTask) Stop() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	c.started = false
+	c.started.Store(false)
 
 	if c.cancel != nil {
 		c.cancel()
