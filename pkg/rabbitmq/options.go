@@ -11,6 +11,7 @@ const (
 	vhost             = "/"
 	channelMax        = 0
 	frameSize         = 0
+	dialTimeout       = "3s"
 	heartbeat         = "60s"
 	reconnectInterval = "10s"
 	retryMax          = 0
@@ -28,6 +29,7 @@ type Options struct {
 	Vhost             string
 	ChannelMax        int
 	FrameSize         int
+	DialTimeout       time.Duration
 	Heartbeat         time.Duration
 	ReconnectInterval time.Duration
 	RetryMax          int
@@ -59,6 +61,9 @@ func newOptions() *Options {
 	}
 	if options.FrameSize < 0 {
 		options.FrameSize = frameSize
+	}
+	if options.DialTimeout <= 0 {
+		options.DialTimeout = gconv.Duration(dialTimeout)
 	}
 	if options.Heartbeat <= 0 {
 		options.Heartbeat = gconv.Duration(heartbeat)

@@ -26,6 +26,25 @@ type Consumer struct {
 	wg         sync.WaitGroup
 }
 
+func (c *Consumer) Channel() (channel *amqp.Channel, err error) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	if !c.started.Load() {
+		err = errcode.New("rabbitmq is not started")
+		return
+	}
+
+	if c.connection == nil || c.connection.IsClosed() {
+		c.connection, err = c.Connection()
+		if err != nil {
+			return
+		}
+	}
+
+	return c.connection.Channel()
+}
+
 func (c *Consumer) Listen(ctx context.Context, exchangeType, exchangeName, routingKey string, listener any, opts ...ConsumerOption) (err error) {
 	deliveryHandler := func(ctx context.Context, delivery *amqp.Delivery) (err error) {
 		defer func() {
@@ -365,34 +384,6 @@ func (c *Consumer) Subscribe(ctx context.Context, exchangeName string, deliveryH
 	})
 
 	return
-}
-
-func (c *Consumer) Channel() (channel *amqp.Channel, err error) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	if !c.started.Load() {
-		err = errcode.New("rabbitmq is not started")
-		return
-	}
-
-	if c.connection == nil || c.connection.IsClosed() {
-		properties := amqp.NewConnectionProperties()
-		properties["product"] = c.options.Product
-
-		c.connection, err = amqp.DialConfig(c.options.URI, amqp.Config{
-			Vhost:      c.options.Vhost,
-			ChannelMax: uint16(c.options.ChannelMax),
-			FrameSize:  c.options.FrameSize,
-			Heartbeat:  c.options.Heartbeat,
-			Properties: properties,
-		})
-		if err != nil {
-			return
-		}
-	}
-
-	return c.connection.Channel()
 }
 
 type ConsumerOptions struct {

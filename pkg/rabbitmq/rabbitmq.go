@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"slices"
 	"sync"
@@ -78,6 +79,24 @@ func (r *RabbitMQ) Start() {
 			_ = table.Close()
 		}
 	}
+}
+
+func (r *RabbitMQ) Connection() (connection *amqp.Connection, err error) {
+	properties := amqp.NewConnectionProperties()
+	properties["product"] = r.options.Product
+
+	return amqp.DialConfig(r.options.URI, amqp.Config{
+		Vhost:      r.options.Vhost,
+		ChannelMax: uint16(r.options.ChannelMax),
+		FrameSize:  r.options.FrameSize,
+		Heartbeat:  r.options.Heartbeat,
+		Properties: properties,
+		Dial: func(network, address string) (net.Conn, error) {
+			return (&net.Dialer{
+				Timeout: r.options.DialTimeout,
+			}).Dial(network, address)
+		},
+	})
 }
 
 func (r *RabbitMQ) ExchangeName(exchangeName string) (name string) {
