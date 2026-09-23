@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"mime"
 	"net/http"
+	"slices"
 
-	"github.com/gogf/gf/v2/container/gset"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
 
@@ -13,11 +13,11 @@ import (
 	"github.com/lowe21/lxv/pkg/errcode"
 )
 
-var streamType = gset.NewFrom([]string{
+var streamTypes = []string{
 	"text/event-stream",
 	"application/octet-stream",
 	"multipart/x-mixed-replace",
-})
+}
 
 func APIResponse(request *ghttp.Request) {
 	if request.GetError() == nil {
@@ -29,7 +29,7 @@ func APIResponse(request *ghttp.Request) {
 	}
 
 	mediaType, _, _ := mime.ParseMediaType(request.Response.Header().Get("Content-Type"))
-	if streamType.Contains(mediaType) {
+	if slices.Contains(streamTypes, mediaType) {
 		return
 	}
 
