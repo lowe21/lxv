@@ -22,10 +22,10 @@ func Transaction(mod Model, ctx context.Context, fn func(context.Context, gdb.TX
 		isTx := gdb.TXFromCtx(ctx, mod.DB().GetGroup()) != nil
 
 		invalidator := cacheInvalidatorFromCtx(ctx)
-		if isTx && invalidator == nil {
-			return errcode.New(gcode.CodeDbOperationError, "transaction context missing cache invalidator")
-		}
 		if invalidator == nil {
+			if isTx {
+				return errcode.New(gcode.CodeDbOperationError, "transaction context missing cache invalidator")
+			}
 			invalidator = &cacheInvalidator{}
 		}
 

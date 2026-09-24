@@ -75,13 +75,8 @@ type cacheInvalidatorCtxKey struct{}
 var invalidatorCtxKey = cacheInvalidatorCtxKey{}
 
 func cacheInvalidatorFromCtx(ctx context.Context) (invalidator *cacheInvalidator) {
-	if ctx == nil {
-		return
-	}
-
-	invalidator, ok := ctx.Value(invalidatorCtxKey).(*cacheInvalidator)
-	if !ok {
-		return
+	if ctx != nil {
+		invalidator, _ = ctx.Value(invalidatorCtxKey).(*cacheInvalidator)
 	}
 
 	return
