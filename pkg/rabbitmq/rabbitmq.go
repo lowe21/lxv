@@ -111,7 +111,7 @@ func (r *RabbitMQ) ExchangeName(exchangeName string) (name string) {
 
 func (r *RabbitMQ) RoutingKey(routingKey, suffix string) (key string) {
 	if routingKey != "" && suffix != "" {
-		key = routingKey + "." + suffix
+		key = routingKey + suffix
 	} else {
 		key = routingKey
 	}

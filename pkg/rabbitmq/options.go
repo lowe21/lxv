@@ -20,7 +20,7 @@ const (
 	retryIntervalMax  = "60s"
 	consumeConcurrent = 1
 	consumePrefetch   = 0
-	consumeDLXSuffix  = "dlx"
+	consumeDLXSuffix  = ".dlx"
 )
 
 type Options struct {
