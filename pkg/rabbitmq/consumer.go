@@ -11,13 +11,12 @@ import (
 
 	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/gogf/gf/v2/util/gconv"
 
 	"github.com/lowe21/lxv/pkg/errcode"
 )
 
-type DeliveryHandler func(ctx context.Context, delivery *amqp.Delivery) error
+type DeliveryHandler func(ctx context.Context, delivery *amqp.Delivery, isDLX bool) error
 
 type Consumer struct {
 	*RabbitMQ
@@ -46,7 +45,7 @@ func (c *Consumer) Channel() (channel *amqp.Channel, err error) {
 }
 
 func (c *Consumer) Listen(ctx context.Context, exchangeType, exchangeName, routingKey string, listener any, opts ...ConsumerOption) (err error) {
-	deliveryHandler := func(ctx context.Context, delivery *amqp.Delivery) (err error) {
+	deliveryHandler := func(ctx context.Context, delivery *amqp.Delivery, isDLX bool) (err error) {
 		defer func() {
 			if exception := recover(); exception != nil {
 				g.Log().Errorf(ctx, "deliveryHandler panic, %+v", exception)
@@ -65,7 +64,7 @@ func (c *Consumer) Listen(ctx context.Context, exchangeType, exchangeName, routi
 
 		switch exchangeType {
 		case amqp.ExchangeDirect:
-			if gstr.HasSuffix(delivery.RoutingKey, c.options.ConsumeDLXSuffix) {
+			if isDLX {
 				err = listener.(QueueListener).ConsumeDLX(ctx, message)
 			} else {
 				err = listener.(QueueListener).Consume(ctx, message)
@@ -154,7 +153,7 @@ func (c *Consumer) Consume(ctx context.Context, exchangeName, routingKey string,
 				func() {
 					if ctx.Err() != nil {
 						_ = delivery.Nack(false, true)
-					} else if deliveryHandler(ctx, &delivery) != nil {
+					} else if deliveryHandler(ctx, &delivery, false) != nil {
 						delay := time.Duration(0)
 						retryCount := gconv.Int(delivery.Headers["x-retry-count"])
 						if retryCount >= options.RetryMax {
@@ -268,7 +267,7 @@ func (c *Consumer) ConsumeDLX(ctx context.Context, exchangeName, routingKey stri
 				func() {
 					if ctx.Err() != nil {
 						_ = delivery.Nack(false, true)
-					} else if deliveryHandler(ctx, &delivery) == nil {
+					} else if deliveryHandler(ctx, &delivery, true) == nil {
 						_ = delivery.Ack(false)
 					}
 				}()
@@ -349,7 +348,7 @@ func (c *Consumer) Subscribe(ctx context.Context, exchangeName string, deliveryH
 				func() {
 					if ctx.Err() != nil {
 						_ = delivery.Nack(false, true)
-					} else if deliveryHandler(ctx, &delivery) != nil {
+					} else if deliveryHandler(ctx, &delivery, false) != nil {
 						_ = delivery.Reject(false)
 					} else {
 						_ = delivery.Ack(false)
