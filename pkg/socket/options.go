@@ -61,6 +61,9 @@ func defaultOptions() *Options {
 	if options.NodeTTL <= 0 {
 		options.NodeTTL = gconv.Duration(nodeTTL)
 	}
+	if options.NodeTTL < time.Second {
+		panic("options error, nodeTTL must be greater than or equal to 1 second")
+	}
 	if options.NodeHeartbeat <= 0 {
 		options.NodeHeartbeat = gconv.Duration(nodeHeartbeat)
 	}

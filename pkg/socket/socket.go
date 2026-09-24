@@ -3,6 +3,7 @@ package socket
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"uuid"
 
 	"github.com/gorilla/websocket"
@@ -21,42 +22,39 @@ type Socket struct {
 	register    *Register
 	connector   *Connector
 	broadcaster *Broadcaster
-	started     bool
 	ctx         context.Context
 	cancel      context.CancelFunc
 	mutex       sync.RWMutex
 	wg          sync.WaitGroup
+	started     atomic.Bool
 }
 
 func (s *Socket) Start() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if s.started {
-		return
+	if !s.started.Load() {
+		s.ctx, s.cancel = context.WithCancel(context.Background())
+		s.started.Store(true)
+
+		if err := s.register.AddNode(s.ctx); err != nil {
+			g.Log().Errorf(s.ctx, "register node error, %v", err)
+		}
+
+		s.wg.Go(func() {
+			s.register.Heartbeat(s.ctx)
+		})
+		s.wg.Go(func() {
+			s.broadcaster.Subscribe(s.ctx)
+		})
 	}
-
-	s.ctx, s.cancel = context.WithCancel(context.Background())
-
-	if err := s.register.AddNode(s.ctx); err != nil {
-		g.Log().Errorf(s.ctx, "register node error, %v", err)
-	}
-
-	s.wg.Go(func() {
-		s.register.Heartbeat(s.ctx)
-	})
-	s.wg.Go(func() {
-		s.broadcaster.Subscribe(s.ctx)
-	})
-
-	s.started = true
 }
 
 func (s *Socket) Connect(request *ghttp.Request, clientID string, group ...string) (err error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
-	if !s.started {
+	if !s.started.Load() {
 		return errcode.New(errcode.ErrInvalidRequest, "socket is not started")
 	}
 
@@ -69,8 +67,6 @@ func (s *Socket) Connect(request *ghttp.Request, clientID string, group ...strin
 		return
 	}
 
-	ctx := request.GetCtx()
-
 	client := &Client{
 		Socket: s,
 		conn:   conn,
@@ -81,6 +77,8 @@ func (s *Socket) Connect(request *ghttp.Request, clientID string, group ...strin
 		output: make(chan []byte, s.options.OutputQueueSize),
 		done:   make(chan struct{}),
 	}
+
+	ctx := request.GetCtx()
 	client.ctx, client.cancel = context.WithCancel(context.WithoutCancel(ctx))
 
 	if err = s.connector.AddClient(ctx, client); err != nil {
@@ -97,14 +95,11 @@ func (s *Socket) Stop() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if s.started {
-		s.started = false
-	} else {
-		return
-	}
+	s.started.Store(false)
 
 	if s.cancel != nil {
 		s.cancel()
+		s.cancel = nil
 	}
 
 	s.wg.Wait()

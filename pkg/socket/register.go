@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/gogf/gf/v2/frame/g"
-	"github.com/gogf/gf/v2/text/gstr"
 )
 
 type Register struct {
@@ -42,11 +41,8 @@ func (r *Register) RenewNode(ctx context.Context) (err error) {
 	key := r.nodeKey()
 	ttl := int64(r.options.NodeTTL.Seconds())
 
-	result, err := r.redis.Expire(ctx, key, ttl)
-	if err != nil {
-		return
-	}
-	if result > 0 {
+	value, err := r.redis.Expire(ctx, key, ttl)
+	if err != nil || value > 0 {
 		return
 	}
 
@@ -54,13 +50,11 @@ func (r *Register) RenewNode(ctx context.Context) (err error) {
 }
 
 func (r *Register) DeleteNode() (err error) {
-	if _, err = r.redis.Del(context.Background(), r.nodeKey()); err != nil {
-		return
-	}
+	_, err = r.redis.Del(context.Background(), r.nodeKey())
 
 	return
 }
 
 func (r *Register) nodeKey() (key string) {
-	return gstr.Join([]string{r.options.RedisKeyPrefix, "node", r.options.NodeID}, ":")
+	return r.options.RedisKeyPrefix + ":node:" + r.options.NodeID
 }

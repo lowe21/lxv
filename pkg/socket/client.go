@@ -118,7 +118,6 @@ func (c *Client) reader() {
 		if err != nil {
 			return
 		}
-
 		select {
 		case c.input <- message:
 		case <-c.done:
@@ -164,7 +163,6 @@ func (c *Client) handler() {
 				}
 
 				c.Send(Message(input.ID, input.Event, data))
-
 				return
 			}(); err != nil {
 				c.Send(Message(input.ID, input.Event, err))
