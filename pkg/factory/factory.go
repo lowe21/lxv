@@ -77,13 +77,13 @@ func (f *Factory[T]) Instance(name string, overrides map[string]any) (instance T
 		if err != nil {
 			return
 		}
-		if g.IsNil(newInstance) {
+		if !g.IsNil(newInstance) {
+			f.setInstance(key, newInstance)
+		} else {
 			err = errcode.New(fmt.Sprintf("provider instance is nil, name: %s", name))
-			return
 		}
-		f.setInstance(key, newInstance)
 
-		return newInstance, nil
+		return newInstance, err
 	})
 	if err != nil {
 		return

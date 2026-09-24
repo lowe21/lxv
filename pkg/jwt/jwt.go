@@ -23,11 +23,9 @@ func (j *JWT) Generate(payload *Payload) (token string, expires time.Time, err e
 	}
 
 	token, err = jwtv5.NewWithClaims(jwtv5.SigningMethodHS256, claims).SignedString(j.options.Key)
-	if err != nil {
-		return
+	if err == nil {
+		expires = claims.ExpiresAt.Time
 	}
-
-	expires = claims.ExpiresAt.Time
 
 	return
 }

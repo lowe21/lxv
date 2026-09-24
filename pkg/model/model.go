@@ -19,11 +19,11 @@ type Model interface {
 
 func Transaction(mod Model, ctx context.Context, fn func(context.Context, gdb.TX) error) (err error) {
 	if fn != nil {
-		isTx := gdb.TXFromCtx(ctx, mod.DB().GetGroup()) != nil
+		inTransaction := gdb.TXFromCtx(ctx, mod.DB().GetGroup()) != nil
 
 		invalidator := cacheInvalidatorFromCtx(ctx)
 		if invalidator == nil {
-			if isTx {
+			if inTransaction {
 				return errcode.New(gcode.CodeDbOperationError, "transaction context missing cache invalidator")
 			}
 			invalidator = &cacheInvalidator{}
@@ -35,7 +35,7 @@ func Transaction(mod Model, ctx context.Context, fn func(context.Context, gdb.TX
 			return
 		}
 
-		if !isTx {
+		if !inTransaction {
 			invalidator.Flush(ctx, mod.DB())
 		}
 	}
