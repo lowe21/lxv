@@ -50,7 +50,7 @@ func (r *RabbitMQ) Start() {
 		r.started.Store(true)
 
 		index := 0
-		for _, queueListener := range queueListeners {
+		for _, queueListener := range getQueueListeners() {
 			exchangeName := queueListener.ExchangeName()
 			routingKey := queueListener.RoutingKey()
 			if err := r.consumer.Listen(r.ctx, amqp.ExchangeDirect, exchangeName, routingKey, queueListener); err != nil {
@@ -62,7 +62,7 @@ func (r *RabbitMQ) Start() {
 			}
 		}
 
-		for _, subscribeListener := range subscribeListeners {
+		for _, subscribeListener := range getSubscribeListeners() {
 			exchangeName := subscribeListener.ExchangeName()
 			if err := r.consumer.Listen(r.ctx, amqp.ExchangeFanout, exchangeName, "", subscribeListener); err != nil {
 				panic(err)
@@ -146,9 +146,8 @@ func (r *RabbitMQ) QueueCreate(channel *amqp.Channel, exchangeType, exchangeName
 	if err != nil {
 		return
 	}
-	if err = channel.QueueBind(queue.Name, routingKey, exchangeName, false, nil); err != nil {
-		return
-	}
+
+	err = channel.QueueBind(queue.Name, routingKey, exchangeName, false, nil)
 
 	return
 }
@@ -159,22 +158,22 @@ func (r *RabbitMQ) QueueDelete(channel *amqp.Channel, exchangeName, routingKey s
 	if _, err = channel.QueueDelete(r.QueueName(exchangeName, routingKey), false, false, false); err != nil {
 		return
 	}
-	if _, err = channel.QueueDelete(r.QueueName(exchangeName, routingKey, r.options.ConsumeDLXSuffix), false, false, false); err != nil {
-		return
-	}
+
+	_, err = channel.QueueDelete(r.QueueName(exchangeName, routingKey, r.options.ConsumeDLXSuffix), false, false, false)
 
 	return
 }
 
 func (r *RabbitMQ) Stop() {
 	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
 	r.started.Store(false)
 
 	if r.cancel != nil {
 		r.cancel()
 		r.cancel = nil
 	}
-	r.mutex.Unlock()
 
 	r.consumer.mutex.Lock()
 	if r.consumer.connection != nil {

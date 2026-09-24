@@ -66,3 +66,27 @@ func SetSubscribeListener(subscribeListener SubscribeListener) {
 	}
 	subscribeListeners[exchangeName] = subscribeListener
 }
+
+func getQueueListeners() (listeners []QueueListener) {
+	mutex.RLock()
+	defer mutex.RUnlock()
+
+	listeners = make([]QueueListener, 0, len(queueListeners))
+	for _, listener := range queueListeners {
+		listeners = append(listeners, listener)
+	}
+
+	return
+}
+
+func getSubscribeListeners() (listeners []SubscribeListener) {
+	mutex.RLock()
+	defer mutex.RUnlock()
+
+	listeners = make([]SubscribeListener, 0, len(subscribeListeners))
+	for _, listener := range subscribeListeners {
+		listeners = append(listeners, listener)
+	}
+
+	return
+}

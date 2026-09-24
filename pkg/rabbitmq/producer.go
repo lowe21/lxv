@@ -106,12 +106,20 @@ func (p *Producer) Broadcast(ctx context.Context, exchangeName string, body []by
 }
 
 type ProducerOptions struct {
+	Expiration int64
 	Delay      int64
 	RetryCount int
-	Expiration int64
 }
 
 type ProducerOption func(*ProducerOptions)
+
+func WithExpiration(expiration int64) ProducerOption {
+	return func(options *ProducerOptions) {
+		if expiration >= 0 {
+			options.Expiration = expiration
+		}
+	}
+}
 
 func WithDelay(delay int64) ProducerOption {
 	return func(options *ProducerOptions) {
@@ -121,18 +129,10 @@ func WithDelay(delay int64) ProducerOption {
 	}
 }
 
-func WithRetryCount(retryCount int) ProducerOption {
+func withRetryCount(retryCount int) ProducerOption {
 	return func(options *ProducerOptions) {
 		if retryCount > 0 {
 			options.RetryCount = retryCount
-		}
-	}
-}
-
-func WithExpiration(expiration int64) ProducerOption {
-	return func(options *ProducerOptions) {
-		if expiration >= 0 {
-			options.Expiration = expiration
 		}
 	}
 }

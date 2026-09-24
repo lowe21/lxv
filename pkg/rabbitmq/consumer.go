@@ -167,7 +167,7 @@ func (c *Consumer) Consume(ctx context.Context, exchangeName, routingKey string,
 							)
 						}
 
-						if c.producer.Publish(ctx, exchangeName, delivery.RoutingKey, delivery.Body, WithDelay(delay.Milliseconds()), WithRetryCount(retryCount+1)) != nil {
+						if c.producer.Publish(ctx, exchangeName, delivery.RoutingKey, delivery.Body, WithDelay(delay.Milliseconds()), withRetryCount(retryCount+1)) != nil {
 							_ = delivery.Nack(false, true)
 						} else {
 							_ = delivery.Ack(false)

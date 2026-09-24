@@ -15,7 +15,6 @@ var (
 func instance() *RabbitMQ {
 	once.Do(func() {
 		options := newOptions()
-
 		rabbitMQ = &RabbitMQ{
 			options: options,
 		}
