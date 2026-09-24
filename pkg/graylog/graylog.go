@@ -37,8 +37,8 @@ func (g *Graylog) worker() {
 				}
 				for _, chunk := range chunks {
 					if err := conn.Send(chunk); err != nil {
-						log.Printf("send error, %v", err)
 						_ = conn.Close()
+						log.Printf("send error, %v", err)
 						break loop
 					}
 				}
@@ -60,11 +60,6 @@ func (g *Graylog) compress(gelf *Gelf) (chunks [][]byte, err error) {
 		return
 	}
 	if dataSize := len(data); dataSize > g.options.MaxChunkSize {
-		id := make([]byte, 8)
-		if _, err = rand.Read(id); err != nil {
-			return
-		}
-
 		headerSize := 12
 		if g.options.MaxChunkSize <= headerSize {
 			err = errcode.New(fmt.Sprintf("max chunk size must be greater than header size %d", headerSize))
@@ -78,19 +73,22 @@ func (g *Graylog) compress(gelf *Gelf) (chunks [][]byte, err error) {
 			return
 		}
 
+		id := make([]byte, 8)
+		if _, err = rand.Read(id); err != nil {
+			return
+		}
+
+		chunks = make([][]byte, 0, chunkNumber)
 		currentSize := 0
 		currentNumber := 0
-
 		for currentSize < dataSize {
 			nextSize := min(currentSize+chunkSize, dataSize)
-
-			chunk := []byte{0x1e, 0x0f}
+			chunk := make([]byte, 0, headerSize+nextSize-currentSize)
+			chunk = append(chunk, 0x1e, 0x0f)
 			chunk = append(chunk, id...)
-			chunk = append(chunk, byte(currentNumber))
-			chunk = append(chunk, byte(chunkNumber))
+			chunk = append(chunk, byte(currentNumber), byte(chunkNumber))
 			chunk = append(chunk, data[currentSize:nextSize]...)
 			chunks = append(chunks, chunk)
-
 			currentSize = nextSize
 			currentNumber++
 		}
