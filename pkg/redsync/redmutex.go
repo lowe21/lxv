@@ -24,22 +24,18 @@ func (r *RedMutex) Lock(ctx context.Context) (err error) {
 		return redsync.ErrFailed
 	}
 
-	var (
-		lockCtx    = ctx
-		lockCancel context.CancelFunc
-	)
+	lockCtx := ctx
+	lockCancel := context.CancelFunc(nil)
 
 	if r.options.LockTimeout > 0 {
 		lockCtx, lockCancel = context.WithTimeout(ctx, r.options.LockTimeout)
 		defer lockCancel()
 	}
 
-	if err = r.mutex.LockContext(lockCtx); err != nil {
-		return
+	if err = r.mutex.LockContext(lockCtx); err == nil {
+		r.locked.Store(true)
+		r.extend(ctx)
 	}
-
-	r.locked.Store(true)
-	r.extend(ctx)
 
 	return
 }
@@ -49,12 +45,10 @@ func (r *RedMutex) TryLock(ctx context.Context) (err error) {
 		return redsync.ErrFailed
 	}
 
-	if err = r.mutex.TryLockContext(ctx); err != nil {
-		return
+	if err = r.mutex.TryLockContext(ctx); err == nil {
+		r.locked.Store(true)
+		r.extend(ctx)
 	}
-
-	r.locked.Store(true)
-	r.extend(ctx)
 
 	return
 }
@@ -86,17 +80,6 @@ func (r *RedMutex) Unlock(ctx context.Context) (err error) {
 
 func (r *RedMutex) extend(ctx context.Context) {
 	interval := r.options.Expiry / 3
-	if interval <= 0 {
-		interval = time.Second
-	}
-
-	extendMax := 0
-	if r.options.ExtendMaxDuration > 0 {
-		extendMax = int(r.options.ExtendMaxDuration / interval)
-		if extendMax <= 0 {
-			extendMax = 1
-		}
-	}
 
 	extendCtx, extendCancel := context.WithCancel(ctx)
 	r.extendCancel = extendCancel
@@ -108,20 +91,15 @@ func (r *RedMutex) extend(ctx context.Context) {
 			extendCancel()
 		}()
 
-		extendCount := 0
 		for {
 			select {
 			case <-ticker.C:
-				if extendMax > 0 && extendCount >= extendMax {
-					return
-				}
 				if _, err := r.mutex.ExtendContext(extendCtx); err != nil {
 					if extendCtx.Err() != nil {
 						return
 					}
 					g.Log().Error(ctx, err)
 				}
-				extendCount++
 			case <-extendCtx.Done():
 				return
 			}

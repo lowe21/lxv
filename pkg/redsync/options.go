@@ -8,25 +8,23 @@ import (
 )
 
 const (
-	redisGroup        = "default"
-	redisKeyPrefix    = "lock"
-	expiry            = "10s"
-	tries             = 60
-	retryDelay        = "1s"
-	extendMaxDuration = "0"
-	lockTimeout       = "3s"
-	unlockTimeout     = "3s"
+	redisGroup     = "default"
+	redisKeyPrefix = "lock"
+	expiry         = "10s"
+	tries          = 60
+	retryDelay     = "1s"
+	lockTimeout    = "3s"
+	unlockTimeout  = "3s"
 )
 
 type Options struct {
-	RedisGroup        string
-	RedisKeyPrefix    string
-	Expiry            time.Duration
-	Tries             int
-	RetryDelay        time.Duration
-	ExtendMaxDuration time.Duration
-	LockTimeout       time.Duration
-	UnlockTimeout     time.Duration
+	RedisGroup     string
+	RedisKeyPrefix string
+	Expiry         time.Duration
+	Tries          int
+	RetryDelay     time.Duration
+	LockTimeout    time.Duration
+	UnlockTimeout  time.Duration
 }
 
 func newOptions() *Options {
@@ -49,9 +47,6 @@ func newOptions() *Options {
 	}
 	if options.RetryDelay <= 0 {
 		options.RetryDelay = gconv.Duration(retryDelay)
-	}
-	if options.ExtendMaxDuration < 0 {
-		options.ExtendMaxDuration = gconv.Duration(extendMaxDuration)
 	}
 	if options.LockTimeout <= 0 {
 		options.LockTimeout = gconv.Duration(lockTimeout)
@@ -85,14 +80,6 @@ func WithRetryDelay(retryDelay time.Duration) Option {
 	return func(options *Options) {
 		if retryDelay > 0 {
 			options.RetryDelay = retryDelay
-		}
-	}
-}
-
-func WithExtendMaxDuration(extendMaxDuration time.Duration) Option {
-	return func(options *Options) {
-		if extendMaxDuration >= 0 {
-			options.ExtendMaxDuration = extendMaxDuration
 		}
 	}
 }

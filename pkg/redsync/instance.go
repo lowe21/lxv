@@ -19,14 +19,11 @@ var (
 func instance() *RedSync {
 	once.Do(func() {
 		options := newOptions()
-
 		redSync = &RedSync{
 			options: options,
-			sync: redsync.New(
-				goredis.NewPool(
-					g.Redis(options.RedisGroup).Client().(redis.UniversalClient),
-				),
-			),
+			sync: redsync.New(goredis.NewPool(
+				g.Redis(options.RedisGroup).Client().(redis.UniversalClient),
+			)),
 		}
 	})
 
