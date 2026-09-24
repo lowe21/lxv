@@ -27,7 +27,9 @@ func Parse(err error) (subCode, message string) {
 		case gcode.CodeValidationFailed.Code():
 			err = New(ErrInvalidParam, err.Error())
 		default:
-			if _, ok = errors.AsType[*redsync.ErrTaken](err); ok {
+			if errors.Is(err, redsync.ErrFailed) {
+				err = ErrSystemBusy
+			} else if _, ok = errors.AsType[*redsync.ErrTaken](err); ok {
 				err = ErrSystemBusy
 			} else if _, ok = errors.AsType[*redsync.ErrNodeTaken](err); ok {
 				err = ErrSystemBusy
