@@ -42,9 +42,9 @@ func APIResponse(request *ghttp.Request) {
 	)
 
 	if err != nil {
+		g.Log().Error(ctx, err, request.RequestURI, request.GetBodyString())
 		request.Response.ClearBuffer()
 		subCode, message = errcode.Parse(err)
-		g.Log().Error(ctx, err, request.RequestURI, request.GetBodyString())
 	} else {
 		if request.Response.Status >= http.StatusMultipleChoices {
 			if request.Response.Status >= http.StatusBadRequest {

@@ -24,9 +24,9 @@ func Validator(ctx context.Context, pointer any, values ...any) (err error) {
 		}
 	}
 
-	if err = gvalid.New().Bail().Data(pointer).Assoc(data).Run(ctx); err != nil {
-		return
+	if err = gvalid.New().Bail().Data(pointer).Assoc(data).Run(ctx); err == nil {
+		err = gconv.Scan(data, pointer)
 	}
 
-	return gconv.Scan(data, pointer)
+	return
 }

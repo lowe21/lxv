@@ -37,8 +37,8 @@ func (g *Graylog) worker() {
 				}
 				for _, chunk := range chunks {
 					if err := conn.Send(chunk); err != nil {
-						_ = conn.Close()
 						log.Printf("send error, %v", err)
+						_ = conn.Close()
 						break loop
 					}
 				}

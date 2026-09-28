@@ -149,9 +149,7 @@ func (c *CryptoRSA) ParsePublicKey(key string) (publicKey *rsa.PublicKey, err er
 		return
 	}
 
-	if err = c.verifyPublicKey(publicKey); err != nil {
-		return
-	}
+	err = c.verifyPublicKey(publicKey)
 
 	return
 }

@@ -79,13 +79,11 @@ func (r *RedMutex) Unlock(ctx context.Context) (err error) {
 }
 
 func (r *RedMutex) extend(ctx context.Context) {
-	interval := r.options.Expiry / 3
-
 	extendCtx, extendCancel := context.WithCancel(ctx)
 	r.extendCancel = extendCancel
 
 	go func() {
-		ticker := time.NewTicker(interval)
+		ticker := time.NewTicker(r.options.Expiry / 3)
 		defer func() {
 			ticker.Stop()
 			extendCancel()
