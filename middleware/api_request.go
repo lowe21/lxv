@@ -20,10 +20,11 @@ import (
 
 type (
 	AuthHandler func(ctx context.Context, token string, leeway bool) (*jwt.Payload, error)
+	PermHandler func(ctx context.Context, payload *jwt.Payload, permission string) error
 	PreHandler  func(ctx context.Context, req *common.APIReq) error
 )
 
-func APIRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFunc {
+func APIRequest(authHandler AuthHandler, permHandler PermHandler, preHandler PreHandler) ghttp.HandlerFunc {
 	return func(request *ghttp.Request) {
 		err := request.GetError()
 		if err != nil {
@@ -46,7 +47,9 @@ func APIRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFun
 		if gconv.Bool(handler.GetMetaTag("notify")) {
 			return
 		}
-		if gconv.Bool(handler.GetMetaTag("auth")) {
+
+		auth := gconv.Bool(handler.GetMetaTag("auth"))
+		if auth {
 			authorization := request.Header.Get("Authorization")
 			if authorization == "" {
 				err = errcode.New(errcode.ErrAuthFailed, "Authorization header is empty")
@@ -81,6 +84,7 @@ func APIRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFun
 				return
 			}
 		}
+
 		if gconv.Bool(handler.GetMetaTag("upload")) {
 			return
 		}
@@ -106,6 +110,20 @@ func APIRequest(authHandler AuthHandler, preHandler PreHandler) ghttp.HandlerFun
 			sign, decodeErr := hex.DecodeString(req.Sign)
 			if decodeErr != nil || !hmac.Equal(hash.Sum(nil), sign) {
 				err = errcode.ErrInvalidSign
+				return
+			}
+		}
+
+		if permission := handler.GetMetaTag("permission"); permission != "" {
+			if !auth {
+				err = errcode.New(errcode.ErrInternal, "when using permissions, meta `auth` must be set to true")
+				return
+			}
+			if permHandler == nil {
+				err = errcode.New(errcode.ErrInternal, "permHandler is nil")
+				return
+			}
+			if err = permHandler(ctx, payload, permission); err != nil {
 				return
 			}
 		}
