@@ -13,11 +13,14 @@ import (
 
 var (
 	redSync *RedSync
-	once    sync.Once
+	mutex   sync.Mutex
 )
 
 func instance() *RedSync {
-	once.Do(func() {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if redSync == nil {
 		options := newOptions()
 		redSync = &RedSync{
 			options: options,
@@ -25,7 +28,7 @@ func instance() *RedSync {
 				g.Redis(options.RedisGroup).Client().(redis.UniversalClient),
 			)),
 		}
-	})
+	}
 
 	return redSync
 }

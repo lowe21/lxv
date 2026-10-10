@@ -14,11 +14,14 @@ import (
 
 var (
 	socket *Socket
-	once   sync.Once
+	mutex  sync.Mutex
 )
 
 func instance() *Socket {
-	once.Do(func() {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if socket == nil {
 		options := defaultOptions()
 		socket = &Socket{
 			options: options,
@@ -47,7 +50,7 @@ func instance() *Socket {
 		socket.broadcaster = &Broadcaster{
 			Socket: socket,
 		}
-	})
+	}
 
 	return socket
 }

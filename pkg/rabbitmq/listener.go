@@ -23,7 +23,7 @@ type (
 var (
 	queueListeners     map[string]QueueListener
 	subscribeListeners map[string]SubscribeListener
-	mutex              sync.RWMutex
+	rwMutex            sync.RWMutex
 )
 
 func SetQueueListener(queueListener QueueListener) {
@@ -36,8 +36,8 @@ func SetQueueListener(queueListener QueueListener) {
 		panic(fmt.Sprintf("queueListener routingKey is empty, type: %T", queueListener))
 	}
 
-	mutex.Lock()
-	defer mutex.Unlock()
+	rwMutex.Lock()
+	defer rwMutex.Unlock()
 
 	if queueListeners == nil {
 		queueListeners = make(map[string]QueueListener)
@@ -55,8 +55,8 @@ func SetSubscribeListener(subscribeListener SubscribeListener) {
 		panic(fmt.Sprintf("subscribeListener exchangeName is empty, type: %T", subscribeListener))
 	}
 
-	mutex.Lock()
-	defer mutex.Unlock()
+	rwMutex.Lock()
+	defer rwMutex.Unlock()
 
 	if subscribeListeners == nil {
 		subscribeListeners = make(map[string]SubscribeListener)
@@ -68,8 +68,8 @@ func SetSubscribeListener(subscribeListener SubscribeListener) {
 }
 
 func getQueueListeners() (listeners []QueueListener) {
-	mutex.RLock()
-	defer mutex.RUnlock()
+	rwMutex.RLock()
+	defer rwMutex.RUnlock()
 
 	listeners = make([]QueueListener, 0, len(queueListeners))
 	for _, listener := range queueListeners {
@@ -80,8 +80,8 @@ func getQueueListeners() (listeners []QueueListener) {
 }
 
 func getSubscribeListeners() (listeners []SubscribeListener) {
-	mutex.RLock()
-	defer mutex.RUnlock()
+	rwMutex.RLock()
+	defer rwMutex.RUnlock()
 
 	listeners = make([]SubscribeListener, 0, len(subscribeListeners))
 	for _, listener := range subscribeListeners {

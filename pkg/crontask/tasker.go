@@ -15,12 +15,12 @@ type Tasker interface {
 
 var (
 	taskers = make(map[string]Tasker)
-	mutex   sync.RWMutex
+	rmMutex sync.RWMutex
 )
 
 func GetTasker(name string) (tasker Tasker, err error) {
-	mutex.RLock()
-	defer mutex.RUnlock()
+	rmMutex.RLock()
+	defer rmMutex.RUnlock()
 
 	tasker, ok := taskers[name]
 	if !ok {
@@ -36,8 +36,8 @@ func SetTasker(tasker Tasker) {
 		panic(fmt.Sprintf("tasker name is empty, type: %T", tasker))
 	}
 
-	mutex.Lock()
-	defer mutex.Unlock()
+	rmMutex.Lock()
+	defer rmMutex.Unlock()
 
 	if _, ok := taskers[name]; ok {
 		panic(fmt.Sprintf("tasker already exists, name: %s", name))

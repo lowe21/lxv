@@ -7,15 +7,18 @@ import (
 
 var (
 	cryptoRSA *CryptoRSA
-	once      sync.Once
+	mutex     sync.Mutex
 )
 
 func instance() *CryptoRSA {
-	once.Do(func() {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if cryptoRSA == nil {
 		cryptoRSA = &CryptoRSA{
 			options: newOptions(),
 		}
-	})
+	}
 
 	return cryptoRSA
 }

@@ -6,11 +6,14 @@ import (
 
 var (
 	graylog *Graylog
-	once    sync.Once
+	mutex   sync.Mutex
 )
 
 func instance() *Graylog {
-	once.Do(func() {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if graylog == nil {
 		options := newOptions()
 		graylog = &Graylog{
 			options: options,
@@ -19,7 +22,7 @@ func instance() *Graylog {
 		for range options.WorkerNumber {
 			go graylog.worker()
 		}
-	})
+	}
 
 	return graylog
 }

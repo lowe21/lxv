@@ -6,16 +6,19 @@ import (
 )
 
 var (
-	jwt  *JWT
-	once sync.Once
+	jwt   *JWT
+	mutex sync.Mutex
 )
 
 func instance() *JWT {
-	once.Do(func() {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if jwt == nil {
 		jwt = &JWT{
 			options: newOptions(),
 		}
-	})
+	}
 
 	return jwt
 }

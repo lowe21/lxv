@@ -9,11 +9,14 @@ import (
 
 var (
 	rabbitMQ *RabbitMQ
-	once     sync.Once
+	mutex    sync.Mutex
 )
 
 func instance() *RabbitMQ {
-	once.Do(func() {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if rabbitMQ == nil {
 		options := newOptions()
 		rabbitMQ = &RabbitMQ{
 			options: options,
@@ -24,7 +27,7 @@ func instance() *RabbitMQ {
 		rabbitMQ.consumer = &Consumer{
 			RabbitMQ: rabbitMQ,
 		}
-	})
+	}
 
 	return rabbitMQ
 }

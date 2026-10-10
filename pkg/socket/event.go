@@ -14,13 +14,13 @@ type Event interface {
 }
 
 var (
-	events map[string]Event
-	mutex  sync.RWMutex
+	events  map[string]Event
+	rwMutex sync.RWMutex
 )
 
 func GetEvent(name string) (event Event, err error) {
-	mutex.RLock()
-	defer mutex.RUnlock()
+	rwMutex.RLock()
+	defer rwMutex.RUnlock()
 
 	event, ok := events[name]
 	if !ok {
@@ -36,8 +36,8 @@ func SetEvent(event Event) {
 		panic(fmt.Sprintf("event name is empty, type: %T", event))
 	}
 
-	mutex.Lock()
-	defer mutex.Unlock()
+	rwMutex.Lock()
+	defer rwMutex.Unlock()
 
 	if events == nil {
 		events = make(map[string]Event)

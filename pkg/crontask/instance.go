@@ -7,15 +7,18 @@ import (
 
 var (
 	cronTask *CronTask
-	once     sync.Once
+	mutex    sync.Mutex
 )
 
 func instance() *CronTask {
-	once.Do(func() {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if cronTask == nil {
 		cronTask = &CronTask{
 			options: newOptions(),
 		}
-	})
+	}
 
 	return cronTask
 }
