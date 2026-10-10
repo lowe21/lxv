@@ -2,7 +2,6 @@ package model
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/gogf/gf/v2/database/gdb"
@@ -11,15 +10,16 @@ import (
 	"github.com/lowe21/lxv/pkg/errcode"
 )
 
-type Model interface {
+type DAO[T any] interface {
 	DB() gdb.DB
 	Table() string
 	Ctx(ctx context.Context) *gdb.Model
+	Entity() *T
 }
 
-func Transaction(mod Model, ctx context.Context, fn func(context.Context, gdb.TX) error) (err error) {
+func Transaction[T any](ctx context.Context, dao DAO[T], fn func(context.Context, gdb.TX) error) (err error) {
 	if fn != nil {
-		inTransaction := gdb.TXFromCtx(ctx, mod.DB().GetGroup()) != nil
+		inTransaction := gdb.TXFromCtx(ctx, dao.DB().GetGroup()) != nil
 
 		invalidator := cacheInvalidatorFromCtx(ctx)
 		if invalidator == nil {
@@ -29,24 +29,24 @@ func Transaction(mod Model, ctx context.Context, fn func(context.Context, gdb.TX
 			invalidator = &cacheInvalidator{}
 		}
 
-		if err = mod.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
+		if err = dao.Ctx(ctx).Transaction(ctx, func(ctx context.Context, tx gdb.TX) error {
 			return fn(context.WithValue(ctx, invalidatorCtxKey, invalidator), tx)
 		}); err != nil {
 			return
 		}
 
 		if !inTransaction {
-			invalidator.Flush(ctx, mod.DB())
+			invalidator.Flush(ctx, dao.DB())
 		}
 	}
 
 	return
 }
 
-func Exist(mod Model, ctx context.Context, opts ...Option) (exist bool, err error) {
+func Exist[T any](ctx context.Context, dao DAO[T], opts ...Option) (exist bool, err error) {
 	options := parseOptions(opts...)
 
-	model := mod.Ctx(ctx)
+	model := dao.Ctx(ctx)
 	for _, condition := range options.conditions {
 		model = model.Where(condition)
 	}
@@ -54,10 +54,10 @@ func Exist(mod Model, ctx context.Context, opts ...Option) (exist bool, err erro
 	return model.Exist()
 }
 
-func Count(mod Model, ctx context.Context, opts ...Option) (count int, err error) {
+func Count[T any](ctx context.Context, dao DAO[T], opts ...Option) (count int, err error) {
 	options := parseOptions(opts...)
 
-	model := mod.Ctx(ctx)
+	model := dao.Ctx(ctx)
 	for _, condition := range options.conditions {
 		model = model.Where(condition)
 	}
@@ -65,10 +65,10 @@ func Count(mod Model, ctx context.Context, opts ...Option) (count int, err error
 	return model.Count()
 }
 
-func Sum(mod Model, ctx context.Context, opts ...Option) (sum float64, err error) {
+func Sum[T any](ctx context.Context, dao DAO[T], opts ...Option) (sum float64, err error) {
 	options := parseOptions(opts...)
 
-	model := mod.Ctx(ctx)
+	model := dao.Ctx(ctx)
 	for _, condition := range options.conditions {
 		model = model.Where(condition)
 	}
@@ -76,10 +76,10 @@ func Sum(mod Model, ctx context.Context, opts ...Option) (sum float64, err error
 	return model.Sum(options.column)
 }
 
-func Avg(mod Model, ctx context.Context, opts ...Option) (avg float64, err error) {
+func Avg[T any](ctx context.Context, dao DAO[T], opts ...Option) (avg float64, err error) {
 	options := parseOptions(opts...)
 
-	model := mod.Ctx(ctx)
+	model := dao.Ctx(ctx)
 	for _, condition := range options.conditions {
 		model = model.Where(condition)
 	}
@@ -87,10 +87,10 @@ func Avg(mod Model, ctx context.Context, opts ...Option) (avg float64, err error
 	return model.Avg(options.column)
 }
 
-func FindList(mod Model, ctx context.Context, opts ...Option) (result gdb.Result, totalCount int, err error) {
+func FindList[T any](ctx context.Context, dao DAO[T], opts ...Option) (entities []*T, totalCount int, err error) {
 	options := parseOptions(opts...)
 
-	model := mod.Ctx(ctx)
+	model := dao.Ctx(ctx)
 	for _, condition := range options.conditions {
 		model = model.Where(condition)
 	}
@@ -104,13 +104,20 @@ func FindList(mod Model, ctx context.Context, opts ...Option) (result gdb.Result
 		options.limit = 10
 	}
 
-	return model.Page(options.page, options.limit).AllAndCount(true)
+	result, totalCount, err := model.Page(options.page, options.limit).AllAndCount(true)
+	if err != nil {
+		return
+	}
+
+	err = result.Structs(&entities)
+
+	return
 }
 
-func FindAll(mod Model, ctx context.Context, opts ...Option) (result gdb.Result, err error) {
+func FindAll[T any](ctx context.Context, dao DAO[T], opts ...Option) (entities []*T, err error) {
 	options := parseOptions(opts...)
 
-	model := mod.Ctx(ctx)
+	model := dao.Ctx(ctx)
 	for _, condition := range options.conditions {
 		model = model.Where(condition)
 	}
@@ -121,88 +128,97 @@ func FindAll(mod Model, ctx context.Context, opts ...Option) (result gdb.Result,
 		model = model.Limit(options.limit)
 	}
 
-	return model.All()
+	err = model.Scan(&entities)
+
+	return
 }
 
-func FindOne(mod Model, ctx context.Context, opts ...Option) (record gdb.Record, err error) {
+func FindOne[T any](ctx context.Context, dao DAO[T], opts ...Option) (entity *T, err error) {
 	options := parseOptions(opts...)
 	if len(options.uk) == 0 {
 		err = errcode.New(gcode.CodeDbOperationError, "unique key is empty")
 		return
 	}
 
-	model := mod.Ctx(ctx).Where(options.uk)
+	model := dao.Ctx(ctx).Where(options.uk)
 	if len(options.conditions) > 0 {
 		for _, condition := range options.conditions {
 			model = model.Where(condition)
 		}
 	} else {
 		model = model.Cache(
-			cacheOption(mod.DB(), mod.Table(), options.cacheKey, time.Hour),
+			cacheOption(dao.DB(), dao.Table(), options.cacheKey, time.Hour),
 		)
 	}
 
-	return model.One()
+	err = model.Scan(&entity)
+
+	return
 }
 
-func InsertOne(mod Model, ctx context.Context, do any, opts ...Option) (result sql.Result, err error) {
+func InsertOne[T any](ctx context.Context, dao DAO[T], do any, opts ...Option) (lastInsertID int64, err error) {
 	options := parseOptions(opts...)
 
-	model := mod.Ctx(ctx)
+	model := dao.Ctx(ctx)
 	if len(options.cacheKeys) > 0 {
 		model = model.Hook(
-			cacheHandler(mod.DB(), mod.Table(), options.cacheKeys...),
+			cacheHandler(dao.DB(), dao.Table(), options.cacheKeys...),
 		)
 	}
 
-	return model.Insert(do)
+	return model.InsertAndGetId(do)
 }
 
-func UpdateOne(mod Model, ctx context.Context, do any, opts ...Option) (result sql.Result, err error) {
+func UpdateOne[T any](ctx context.Context, dao DAO[T], do any, opts ...Option) (affected int64, err error) {
 	options := parseOptions(opts...)
 	if len(options.uk) == 0 {
 		err = errcode.New(gcode.CodeDbOperationError, "unique key is empty")
 		return
 	}
 
-	model := mod.Ctx(ctx).Where(options.uk)
+	model := dao.Ctx(ctx).Where(options.uk)
 	for _, condition := range options.conditions {
 		model = model.Where(condition)
 	}
 	if len(options.cacheKeys) > 0 {
 		model = model.Hook(
-			cacheHandler(mod.DB(), mod.Table(), options.cacheKeys...),
+			cacheHandler(dao.DB(), dao.Table(), options.cacheKeys...),
 		)
 	}
 
-	return model.Update(do)
+	return model.Limit(1).UpdateAndGetAffected(do)
 }
 
-func DeleteOne(mod Model, ctx context.Context, opts ...Option) (result sql.Result, err error) {
+func DeleteOne[T any](ctx context.Context, dao DAO[T], opts ...Option) (affected int64, err error) {
 	options := parseOptions(opts...)
 	if len(options.uk) == 0 {
 		err = errcode.New(gcode.CodeDbOperationError, "unique key is empty")
 		return
 	}
 
-	model := mod.Ctx(ctx).Where(options.uk)
+	model := dao.Ctx(ctx).Where(options.uk)
 	for _, condition := range options.conditions {
 		model = model.Where(condition)
 	}
 	if len(options.cacheKeys) > 0 {
 		model = model.Hook(
-			cacheHandler(mod.DB(), mod.Table(), options.cacheKeys...),
+			cacheHandler(dao.DB(), dao.Table(), options.cacheKeys...),
 		)
 	}
 
-	return model.Delete()
+	result, err := model.Limit(1).Delete()
+	if err != nil {
+		return
+	}
+
+	return result.RowsAffected()
 }
 
-func DeleteCache(mod Model, ctx context.Context, opts ...Option) (err error) {
+func DeleteCache[T any](ctx context.Context, dao DAO[T], opts ...Option) (err error) {
 	options := parseOptions(opts...)
 
 	if len(options.cacheKeys) > 0 {
-		cacheInvalidate(ctx, mod.DB(), mod.Table(), options.cacheKeys...)
+		cacheInvalidate(ctx, dao.DB(), dao.Table(), options.cacheKeys...)
 	}
 
 	return
