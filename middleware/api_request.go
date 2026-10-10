@@ -8,6 +8,7 @@ import (
 	"maps"
 	"slices"
 
+	"github.com/gogf/gf/v2/errors/gerror"
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/gogf/gf/v2/util/gconv"
@@ -32,6 +33,9 @@ func APIRequest(authHandler AuthHandler, permHandler PermHandler, preHandler Pre
 			return
 		}
 		defer func() {
+			if exception := recover(); exception != nil {
+				err = gerror.Newf("%v", exception)
+			}
 			request.SetError(err)
 			request.Middleware.Next()
 		}()
