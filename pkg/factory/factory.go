@@ -20,7 +20,7 @@ type Factory[T any] struct {
 	providers map[string]providerEntry[T]
 	cache     *gcache.Cache
 	ttl       time.Duration
-	mutex     sync.RWMutex
+	rwMutex   sync.RWMutex
 	sf        singleflight.Group
 }
 
@@ -30,8 +30,8 @@ func (f *Factory[T]) SetProvider[O any](provider Provider[T, O]) {
 		panic(fmt.Sprintf("provider name is empty, type: %T", provider))
 	}
 
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
+	f.rwMutex.Lock()
+	defer f.rwMutex.Unlock()
 
 	if _, ok := f.providers[name]; ok {
 		panic(fmt.Sprintf("provider already exists, name: %s", name))
@@ -42,9 +42,9 @@ func (f *Factory[T]) SetProvider[O any](provider Provider[T, O]) {
 }
 
 func (f *Factory[T]) Instance(name string, overrides map[string]any) (instance T, err error) {
-	f.mutex.RLock()
+	f.rwMutex.RLock()
 	provider, ok := f.providers[name]
-	f.mutex.RUnlock()
+	f.rwMutex.RUnlock()
 	if !ok {
 		err = errcode.New(fmt.Sprintf("provider not found, name: %s", name))
 		return

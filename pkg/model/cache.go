@@ -13,13 +13,13 @@ import (
 )
 
 type cacheInvalidator struct {
-	keys  map[string]map[string]struct{}
-	mutex sync.RWMutex
+	keys    map[string]map[string]struct{}
+	rwMutex sync.RWMutex
 }
 
 func (c *cacheInvalidator) GetKeys(group string) (keys []string) {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
+	c.rwMutex.RLock()
+	defer c.rwMutex.RUnlock()
 
 	keys = make([]string, 0, len(c.keys[group]))
 	for key := range c.keys[group] {
@@ -31,8 +31,8 @@ func (c *cacheInvalidator) GetKeys(group string) (keys []string) {
 
 func (c *cacheInvalidator) SetKey(group, key string) {
 	if key != "" {
-		c.mutex.Lock()
-		defer c.mutex.Unlock()
+		c.rwMutex.Lock()
+		defer c.rwMutex.Unlock()
 
 		if c.keys == nil {
 			c.keys = make(map[string]map[string]struct{})
@@ -45,8 +45,8 @@ func (c *cacheInvalidator) SetKey(group, key string) {
 }
 
 func (c *cacheInvalidator) DeleteKeys(group string, keys []string) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.rwMutex.Lock()
+	defer c.rwMutex.Unlock()
 
 	for _, key := range keys {
 		delete(c.keys[group], key)

@@ -24,14 +24,14 @@ type Socket struct {
 	broadcaster *Broadcaster
 	ctx         context.Context
 	cancel      context.CancelFunc
-	mutex       sync.RWMutex
+	rwMutex     sync.RWMutex
 	wg          sync.WaitGroup
 	started     atomic.Bool
 }
 
 func (s *Socket) Start() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.rwMutex.Lock()
+	defer s.rwMutex.Unlock()
 
 	if !s.started.Load() {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
@@ -51,8 +51,8 @@ func (s *Socket) Start() {
 }
 
 func (s *Socket) Connect(request *ghttp.Request, clientID string, group ...string) (err error) {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
+	s.rwMutex.RLock()
+	defer s.rwMutex.RUnlock()
 
 	if !s.started.Load() {
 		return errcode.New(errcode.ErrInvalidRequest, "socket is not started")
@@ -92,8 +92,8 @@ func (s *Socket) Connect(request *ghttp.Request, clientID string, group ...strin
 }
 
 func (s *Socket) Stop() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.rwMutex.Lock()
+	defer s.rwMutex.Unlock()
 
 	s.started.Store(false)
 

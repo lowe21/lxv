@@ -21,7 +21,7 @@ type DeliveryHandler func(ctx context.Context, delivery *amqp.Delivery, isDLX bo
 type Consumer struct {
 	*RabbitMQ
 	connection *amqp.Connection
-	mutex      sync.RWMutex
+	mutex      sync.Mutex
 	wg         sync.WaitGroup
 }
 

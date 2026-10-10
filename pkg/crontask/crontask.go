@@ -23,13 +23,13 @@ type CronTask struct {
 	cron    *gcron.Cron
 	ctx     context.Context
 	cancel  context.CancelFunc
-	mutex   sync.RWMutex
+	rmMutex sync.RWMutex
 	started atomic.Bool
 }
 
 func (c *CronTask) Start() {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.rmMutex.Lock()
+	defer c.rmMutex.Unlock()
 
 	if !c.started.Load() {
 		rows := []string{"#", "NAME", "PATTERN", "TASKER", "STATUS"}
@@ -76,8 +76,8 @@ func (c *CronTask) Start() {
 }
 
 func (c *CronTask) AddTask(ctx context.Context, name, pattern string, tasker Tasker) (err error) {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
+	c.rmMutex.RLock()
+	defer c.rmMutex.RUnlock()
 
 	if c.started.Load() {
 		err = c.addTask(ctx, name, pattern, tasker)
@@ -107,8 +107,8 @@ func (c *CronTask) addTask(ctx context.Context, name, pattern string, tasker Tas
 }
 
 func (c *CronTask) RemoveTask(name string) (err error) {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
+	c.rmMutex.RLock()
+	defer c.rmMutex.RUnlock()
 
 	if c.started.Load() {
 		c.cron.Remove(name)
@@ -120,8 +120,8 @@ func (c *CronTask) RemoveTask(name string) (err error) {
 }
 
 func (c *CronTask) Stop() {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.rmMutex.Lock()
+	defer c.rmMutex.Unlock()
 
 	c.started.Store(false)
 

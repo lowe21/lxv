@@ -14,7 +14,7 @@ import (
 type Producer struct {
 	*RabbitMQ
 	connection *amqp.Connection
-	mutex      sync.RWMutex
+	mutex      sync.Mutex
 }
 
 func (p *Producer) Channel() (channel *amqp.Channel, err error) {

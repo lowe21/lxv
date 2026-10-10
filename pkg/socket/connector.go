@@ -59,19 +59,19 @@ return deleted
 type Connector struct {
 	*Socket
 	clients map[string]map[string]*Client
-	mutex   sync.RWMutex
+	rwMutex sync.RWMutex
 }
 
 func (c *Connector) GetClient(clientID string, group ...string) (client *Client) {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
+	c.rwMutex.RLock()
+	defer c.rwMutex.RUnlock()
 
 	return c.clients[c.groupName(group...)][clientID]
 }
 
 func (c *Connector) GetClients(group ...string) (clients map[string]*Client) {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
+	c.rwMutex.RLock()
+	defer c.rwMutex.RUnlock()
 
 	origClients := c.clients[c.groupName(group...)]
 	clients = make(map[string]*Client, len(origClients))
@@ -81,13 +81,13 @@ func (c *Connector) GetClients(group ...string) (clients map[string]*Client) {
 }
 
 func (c *Connector) AddClient(ctx context.Context, client *Client) (err error) {
-	c.mutex.Lock()
+	c.rwMutex.Lock()
 	value, err := c.redis.Eval(ctx, addClientScript, 2, []string{
 		c.groupKey(client.group),
 		c.groupNodeKey(c.options.NodeID, client.group),
 	}, []any{client.id, c.options.NodeID, client.token, int64(c.options.NodeTTL.Seconds()), c.groupNodeKey("", client.group)})
 	if err != nil {
-		c.mutex.Unlock()
+		c.rwMutex.Unlock()
 		return
 	}
 
@@ -100,7 +100,7 @@ func (c *Connector) AddClient(ctx context.Context, client *Client) (err error) {
 	if origClient != client {
 		clients[client.id] = client
 	}
-	c.mutex.Unlock()
+	c.rwMutex.Unlock()
 
 	data := value.Strings()
 	nodeID, token := data[0], data[1]
@@ -129,8 +129,8 @@ func (c *Connector) RenewClients(ctx context.Context, group string) (err error) 
 		return
 	}
 
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
+	c.rwMutex.RLock()
+	defer c.rwMutex.RUnlock()
 
 	clients := c.clients[c.groupName(group)]
 	if len(clients) > 0 {
@@ -146,7 +146,7 @@ func (c *Connector) RenewClients(ctx context.Context, group string) (err error) 
 }
 
 func (c *Connector) DeleteClient(client *Client) (err error) {
-	c.mutex.Lock()
+	c.rwMutex.Lock()
 	isDeleted := false
 	if clients := c.clients[client.group]; clients != nil {
 		if clients[client.id] == client {
@@ -157,7 +157,7 @@ func (c *Connector) DeleteClient(client *Client) (err error) {
 			isDeleted = true
 		}
 	}
-	c.mutex.Unlock()
+	c.rwMutex.Unlock()
 
 	if isDeleted {
 		_, err = c.redis.Eval(context.Background(), deleteClientScript, 2, []string{
@@ -170,8 +170,8 @@ func (c *Connector) DeleteClient(client *Client) (err error) {
 }
 
 func (c *Connector) GetGroups() (groups []string) {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
+	c.rwMutex.RLock()
+	defer c.rwMutex.RUnlock()
 
 	groups = make([]string, 0, len(c.clients))
 	for group := range c.clients {

@@ -23,7 +23,7 @@ type RabbitMQ struct {
 	consumer *Consumer
 	ctx      context.Context
 	cancel   context.CancelFunc
-	mutex    sync.RWMutex
+	mutex    sync.Mutex
 	started  atomic.Bool
 }
 
