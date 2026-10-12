@@ -61,10 +61,14 @@ func WithColumn(column string) Option {
 func WithOrder(column string, sort Sort) Option {
 	return func(options *Options) {
 		if column != "" {
-			options.order = column
+			order := column
 			if sort == Asc || sort == Desc {
-				options.order = column + " " + string(sort)
+				order += " " + string(sort)
 			}
+			if options.order != "" {
+				options.order += ", "
+			}
+			options.order += order
 		}
 	}
 }
