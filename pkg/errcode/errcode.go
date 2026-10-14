@@ -11,6 +11,7 @@ var (
 	ErrInvalidSign      = New("INVALID_SIGN", "无效签名")
 	ErrInvalidToken     = New("INVALID_TOKEN", "无效令牌")
 	ErrAuthFailed       = New("AUTH_FAILED", "鉴权失败")
+	ErrValidationFailed = New("VALIDATION_FAILED", "校验失败")
 	ErrBusinessFailed   = New("BUSINESS_FAILED", "业务失败")
 	ErrOperationFailed  = New("OPERATION_FAILED", "操作失败")
 	ErrPermissionDenied = New("PERMISSION_DENIED", "权限不足")
