@@ -6,6 +6,7 @@ import (
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gcode"
+	"github.com/gogf/gf/v2/os/gcache"
 
 	"github.com/lowe21/lxv/pkg/errcode"
 )
@@ -189,6 +190,18 @@ func UpdateOne[T any](ctx context.Context, dao DAO[T], do any, opts ...Option) (
 	return model.Limit(1).UpdateAndGetAffected(do)
 }
 
+func UpdateOneOrFail[T any](ctx context.Context, dao DAO[T], do any, opts ...Option) (err error) {
+	affected, err := UpdateOne(ctx, dao, do, opts...)
+	if err != nil {
+		return
+	}
+	if affected == 0 {
+		err = errcode.ErrOperationFailed
+	}
+
+	return
+}
+
 func DeleteOne[T any](ctx context.Context, dao DAO[T], opts ...Option) (affected int64, err error) {
 	options := parseOptions(opts...)
 	if len(options.uk) == 0 {
@@ -212,6 +225,22 @@ func DeleteOne[T any](ctx context.Context, dao DAO[T], opts ...Option) (affected
 	}
 
 	return result.RowsAffected()
+}
+
+func DeleteOneOrFail[T any](ctx context.Context, dao DAO[T], opts ...Option) (err error) {
+	affected, err := DeleteOne(ctx, dao, opts...)
+	if err != nil {
+		return
+	}
+	if affected == 0 {
+		err = errcode.ErrOperationFailed
+	}
+
+	return
+}
+
+func Cache[T any](_ context.Context, dao DAO[T]) (cache *gcache.Cache) {
+	return dao.DB().GetCache()
 }
 
 func DeleteCache[T any](ctx context.Context, dao DAO[T], opts ...Option) (err error) {
