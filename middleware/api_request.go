@@ -45,12 +45,12 @@ func APIRequest(authHandler AuthHandler, permHandler PermHandler, preHandler Pre
 			return
 		}
 
-		ctx := request.GetCtx()
-		payload := &jwt.Payload{}
-
 		if gconv.Bool(handler.GetMetaTag("notify")) {
 			return
 		}
+
+		ctx := request.GetCtx()
+		payload := &jwt.Payload{}
 
 		auth := gconv.Bool(handler.GetMetaTag("auth"))
 		if auth {
@@ -63,10 +63,6 @@ func APIRequest(authHandler AuthHandler, permHandler PermHandler, preHandler Pre
 			fields := gstr.Fields(authorization)
 			if len(fields) != 2 || !gstr.Equal(fields[0], "Bearer") {
 				err = errcode.New(errcode.ErrAuthFailed, "Authorization header is invalid")
-				return
-			}
-			if fields[1] == "" {
-				err = errcode.New(errcode.ErrAuthFailed, "Bearer token is empty")
 				return
 			}
 
@@ -89,32 +85,32 @@ func APIRequest(authHandler AuthHandler, permHandler PermHandler, preHandler Pre
 			}
 		}
 
-		if gconv.Bool(handler.GetMetaTag("upload")) {
-			return
-		}
-
 		req := &common.APIReq{}
-		if err = validation.Validator(ctx, req); err != nil {
-			err = errcode.New(errcode.ErrInvalidParam, err.Error())
-			return
-		}
 
-		if payload.SessionKey != "" {
-			reqMap := gconv.MapStrStr(req)
-			reqValues := make([]string, 0, len(reqMap))
-			for _, key := range slices.Sorted(maps.Keys(reqMap)) {
-				if key != "" && key != "sign" {
-					reqValues = append(reqValues, key+"="+reqMap[key])
+		upload := gconv.Bool(handler.GetMetaTag("upload"))
+		if !upload {
+			if err = validation.Validator(ctx, req); err != nil {
+				err = errcode.New(errcode.ErrInvalidParam, err.Error())
+				return
+			}
+
+			if auth {
+				reqMap := gconv.MapStrStr(req)
+				reqValues := make([]string, 0, len(reqMap))
+				for _, key := range slices.Sorted(maps.Keys(reqMap)) {
+					if key != "" && key != "sign" {
+						reqValues = append(reqValues, key+"="+reqMap[key])
+					}
 				}
-			}
-			hash := hmac.New(sha256.New, []byte(payload.SessionKey))
-			if _, err = hash.Write([]byte(gstr.Join(reqValues, "&"))); err != nil {
-				return
-			}
-			sign, decodeErr := hex.DecodeString(req.Sign)
-			if decodeErr != nil || !hmac.Equal(hash.Sum(nil), sign) {
-				err = errcode.ErrInvalidSign
-				return
+				hash := hmac.New(sha256.New, []byte(payload.SessionKey))
+				if _, err = hash.Write([]byte(gstr.Join(reqValues, "&"))); err != nil {
+					return
+				}
+				sign, decodeErr := hex.DecodeString(req.Sign)
+				if decodeErr != nil || !hmac.Equal(hash.Sum(nil), sign) {
+					err = errcode.ErrInvalidSign
+					return
+				}
 			}
 		}
 
@@ -132,28 +128,30 @@ func APIRequest(authHandler AuthHandler, permHandler PermHandler, preHandler Pre
 			}
 		}
 
-		if preHandler != nil {
-			if err = preHandler(ctx, req); err != nil {
-				return
-			}
-		}
-
-		setParam := func(data any) {
-			dataMap := gconv.Map(data)
-			for _, key := range slices.Sorted(maps.Keys(dataMap)) {
-				if newKey := gstr.CaseCamelLower(key); newKey != key {
-					if _, ok := dataMap[newKey]; !ok {
-						dataMap[newKey] = dataMap[key]
-					}
-					delete(dataMap, key)
+		if !upload {
+			if preHandler != nil {
+				if err = preHandler(ctx, req); err != nil {
+					return
 				}
 			}
-			request.SetParamMap(dataMap)
+			setParam(request, req.Content)
 		}
 
-		setParam(req.Content)
-		if payload.SessionKey != "" {
-			setParam(payload)
+		if auth {
+			setParam(request, payload)
 		}
 	}
+}
+
+func setParam(request *ghttp.Request, data any) {
+	dataMap := gconv.Map(data)
+	for _, key := range slices.Sorted(maps.Keys(dataMap)) {
+		if newKey := gstr.CaseCamelLower(key); newKey != key {
+			if _, ok := dataMap[newKey]; !ok {
+				dataMap[newKey] = dataMap[key]
+			}
+			delete(dataMap, key)
+		}
+	}
+	request.SetParamMap(dataMap)
 }
