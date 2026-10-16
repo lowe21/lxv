@@ -21,7 +21,7 @@ import (
 
 type (
 	AuthHandler func(ctx context.Context, token string, leeway bool) (*jwt.Payload, error)
-	PermHandler func(ctx context.Context, payload *jwt.Payload, permission string) error
+	PermHandler func(ctx context.Context, payload *jwt.Payload, permission string, rootOnly bool) error
 	PreHandler  func(ctx context.Context, req *common.APIReq) error
 )
 
@@ -114,7 +114,9 @@ func APIRequest(authHandler AuthHandler, permHandler PermHandler, preHandler Pre
 			}
 		}
 
-		if permission := handler.GetMetaTag("permission"); permission != "" {
+		permission := handler.GetMetaTag("permission")
+		rootOnly := gconv.Bool(handler.GetMetaTag("root-only"))
+		if permission != "" || rootOnly {
 			if !auth {
 				err = errcode.New(errcode.ErrInternal, "when using permissions, meta `auth` must be set to true")
 				return
@@ -123,7 +125,7 @@ func APIRequest(authHandler AuthHandler, permHandler PermHandler, preHandler Pre
 				err = errcode.New(errcode.ErrInternal, "permHandler is nil")
 				return
 			}
-			if err = permHandler(ctx, payload, permission); err != nil {
+			if err = permHandler(ctx, payload, permission, rootOnly); err != nil {
 				return
 			}
 		}
