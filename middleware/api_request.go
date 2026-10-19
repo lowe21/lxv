@@ -12,6 +12,7 @@ import (
 	"github.com/gogf/gf/v2/net/ghttp"
 	"github.com/gogf/gf/v2/text/gstr"
 	"github.com/gogf/gf/v2/util/gconv"
+	"github.com/gogf/gf/v2/util/gutil"
 
 	"github.com/lowe21/lxv/common"
 	"github.com/lowe21/lxv/pkg/errcode"
@@ -89,8 +90,21 @@ func APIRequest(authHandler AuthHandler, permHandler PermHandler, preHandler Pre
 
 		upload := gconv.Bool(handler.GetMetaTag("upload"))
 		if !upload {
-			if err = validation.Validator(ctx, req); err != nil {
-				err = errcode.New(errcode.ErrInvalidParam, err.Error())
+			params := request.GetRequestMap()
+			if err = request.GetError(); err != nil {
+				return
+			}
+
+			allowedParams := gconv.Map(req)
+			for key := range params {
+				if !gutil.MapContainsPossibleKey(allowedParams, key) {
+					err = errcode.New(errcode.ErrInvalidParam, "business parameters must be placed within the `content`")
+					return
+				}
+			}
+
+			if err = validation.Validator(ctx, req, params); err != nil {
+				err = errcode.New(errcode.ErrValidationFailed, err.Error())
 				return
 			}
 
