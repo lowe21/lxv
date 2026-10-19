@@ -24,8 +24,6 @@ func Parse(err error) (subCode, message string) {
 			err = ErrInternal
 		case gcode.CodeDbOperationError.Code():
 			err = ErrOperationFailed
-		case gcode.CodeValidationFailed.Code():
-			err = New(ErrInvalidParam, err.Error())
 		default:
 			if errors.Is(err, redsync.ErrFailed) {
 				err = ErrSystemBusy
