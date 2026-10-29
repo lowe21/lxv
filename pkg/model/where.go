@@ -60,6 +60,13 @@ func WhereIsNotNull(column string) string {
 	return parseColumn(column) + " IS NOT NULL"
 }
 
+func WherePointInPolygon(column string) string {
+	column = parseColumn(column)
+	expr := "ST_GeomFromText(?, 4326, 'axis-order=long-lat')"
+
+	return "MBRIntersects(" + column + ", " + expr + ") AND ST_Intersects(" + column + ", " + expr + ")"
+}
+
 func parseColumn(column string) string {
 	return "`" + gstr.ReplaceByArray(column, []string{"`", "``", ".", "`.`"}) + "`"
 }
