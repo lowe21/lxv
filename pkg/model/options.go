@@ -14,6 +14,7 @@ const (
 )
 
 type Options struct {
+	fields     []any
 	uk         gdb.Map
 	cacheKey   string
 	cacheKeys  []string
@@ -25,6 +26,14 @@ type Options struct {
 }
 
 type Option func(*Options)
+
+func WithFields(fields ...any) Option {
+	return func(options *Options) {
+		if len(fields) > 0 {
+			options.fields = fields
+		}
+	}
+}
 
 func WithUK(column string, value any) Option {
 	return func(options *Options) {

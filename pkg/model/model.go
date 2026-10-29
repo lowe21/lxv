@@ -92,6 +92,9 @@ func FindList[T any](ctx context.Context, dao DAO[T], opts ...Option) (entities 
 	options := parseOptions(opts...)
 
 	model := dao.Ctx(ctx)
+	if len(options.fields) > 0 {
+		model = model.Fields(options.fields...)
+	}
 	for _, condition := range options.conditions {
 		model = model.Where(condition)
 	}
@@ -119,6 +122,9 @@ func FindAll[T any](ctx context.Context, dao DAO[T], opts ...Option) (entities [
 	options := parseOptions(opts...)
 
 	model := dao.Ctx(ctx)
+	if len(options.fields) > 0 {
+		model = model.Fields(options.fields...)
+	}
 	for _, condition := range options.conditions {
 		model = model.Where(condition)
 	}
