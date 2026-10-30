@@ -2,11 +2,13 @@ package model
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/os/gcache"
+	"github.com/gogf/gf/v2/text/gstr"
 
 	"github.com/lowe21/lxv/pkg/errcode"
 )
@@ -16,6 +18,40 @@ type DAO[T any] interface {
 	Table() string
 	Ctx(ctx context.Context) *gdb.Model
 	Entity() *T
+}
+
+func Model[T any](ctx context.Context, dao DAO[T], fields ...any) (model *gdb.Model, err error) {
+	model = dao.Ctx(ctx)
+
+	if len(fields) > 0 {
+		return model.Fields(fields...), nil
+	}
+
+	tableFields, err := model.TableFields(dao.Table())
+	if err != nil {
+		return
+	}
+
+	columns := make([]*gdb.TableField, 0, len(tableFields))
+	for _, tableField := range tableFields {
+		columns = append(columns, tableField)
+	}
+	sort.Slice(columns, func(i, j int) bool {
+		return columns[i].Index < columns[j].Index
+	})
+
+	fields = make([]any, 0, len(columns))
+	for _, column := range columns {
+		field := model.QuoteWord(column.Name)
+		switch gstr.ToUpper(column.Type) {
+		case "POLYGON", "MULTIPOLYGON":
+			fields = append(fields, gdb.Raw("ST_AsGeoJSON("+field+") AS "+field))
+		default:
+			fields = append(fields, field)
+		}
+	}
+
+	return model.Fields(fields...), nil
 }
 
 func Transaction[T any](ctx context.Context, dao DAO[T], fn func(context.Context, gdb.TX) error) (err error) {
@@ -91,9 +127,9 @@ func Avg[T any](ctx context.Context, dao DAO[T], opts ...Option) (avg float64, e
 func FindList[T any](ctx context.Context, dao DAO[T], opts ...Option) (entities []*T, totalCount int, err error) {
 	options := parseOptions(opts...)
 
-	model := dao.Ctx(ctx)
-	if len(options.fields) > 0 {
-		model = model.Fields(options.fields...)
+	model, err := Model(ctx, dao, options.fields...)
+	if err != nil {
+		return
 	}
 	for _, condition := range options.conditions {
 		model = model.Where(condition)
@@ -121,9 +157,9 @@ func FindList[T any](ctx context.Context, dao DAO[T], opts ...Option) (entities 
 func FindAll[T any](ctx context.Context, dao DAO[T], opts ...Option) (entities []*T, err error) {
 	options := parseOptions(opts...)
 
-	model := dao.Ctx(ctx)
-	if len(options.fields) > 0 {
-		model = model.Fields(options.fields...)
+	model, err := Model(ctx, dao, options.fields...)
+	if err != nil {
+		return
 	}
 	for _, condition := range options.conditions {
 		model = model.Where(condition)
@@ -147,7 +183,11 @@ func FindOne[T any](ctx context.Context, dao DAO[T], opts ...Option) (entity *T,
 		return
 	}
 
-	model := dao.Ctx(ctx).Where(options.uk)
+	model, err := Model(ctx, dao)
+	if err != nil {
+		return
+	}
+	model = model.Where(options.uk)
 	if len(options.conditions) > 0 {
 		for _, condition := range options.conditions {
 			model = model.Where(condition)
