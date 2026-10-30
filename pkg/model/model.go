@@ -27,6 +27,10 @@ func Model[T any](ctx context.Context, dao DAO[T], fields ...any) (model *gdb.Mo
 		return model.Fields(fields...), nil
 	}
 
+	if !gstr.Equal(dao.DB().GetConfig().Type, "mysql") {
+		return
+	}
+
 	tableFields, err := model.TableFields(dao.Table())
 	if err != nil {
 		return
