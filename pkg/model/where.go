@@ -62,9 +62,9 @@ func WhereIsNotNull(column string) string {
 
 func WherePointInPolygon(column string) string {
 	column = parseColumn(column)
-	expr := "ST_GeomFromText(?, 4326, 'axis-order=long-lat')"
+	point := "ST_GeomFromText(?, 0)"
 
-	return "MBRIntersects(" + column + ", " + expr + ") AND ST_Intersects(" + column + ", " + expr + ")"
+	return "MBRIntersects(" + column + ", " + point + ") AND ST_Intersects(" + column + ", " + point + ")"
 }
 
 func parseColumn(column string) string {

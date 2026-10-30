@@ -18,5 +18,5 @@ func PolygonRaw(coords [][]float64) gdb.Raw {
 		points = append(points, points[0])
 	}
 
-	return gdb.Raw("ST_GeomFromText('POLYGON((" + gstr.Join(points, ", ") + "))', 4326, 'axis-order=long-lat')")
+	return gdb.Raw("ST_GeomFromText('POLYGON((" + gstr.Join(points, ", ") + "))', 0)")
 }
