@@ -54,7 +54,7 @@ func WithInvalidateUK(invalidateUK gdb.Map) Option {
 
 func WithCondition(condition gdb.Map) Option {
 	return func(options *Options) {
-		if condition != nil {
+		if len(condition) > 0 {
 			options.conditions = append(options.conditions, condition)
 		}
 	}
@@ -62,7 +62,7 @@ func WithCondition(condition gdb.Map) Option {
 
 func WithDuplicate(duplicate gdb.Map) Option {
 	return func(options *Options) {
-		if duplicate != nil {
+		if len(duplicate) > 0 {
 			options.duplicate = duplicate
 		}
 	}

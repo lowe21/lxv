@@ -219,7 +219,7 @@ func Insert[T any](ctx context.Context, dao DAO[T], do any, opts ...Option) (aff
 	}
 
 	var result sql.Result
-	if options.duplicate != nil {
+	if len(options.duplicate) > 0 {
 		result, err = model.OnDuplicate(options.duplicate).Save(do)
 	} else {
 		result, err = model.Insert(do)
