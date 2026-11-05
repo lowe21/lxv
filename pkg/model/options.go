@@ -19,6 +19,7 @@ type Options struct {
 	cacheKey   string
 	cacheKeys  []string
 	conditions []gdb.Map
+	duplicate  gdb.Map
 	column     string
 	order      string
 	page       int
@@ -55,6 +56,14 @@ func WithCondition(condition gdb.Map) Option {
 	return func(options *Options) {
 		if condition != nil {
 			options.conditions = append(options.conditions, condition)
+		}
+	}
+}
+
+func WithDuplicate(duplicate gdb.Map) Option {
+	return func(options *Options) {
+		if duplicate != nil {
+			options.duplicate = duplicate
 		}
 	}
 }

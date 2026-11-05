@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"database/sql"
 	"sort"
 	"time"
 
@@ -207,7 +208,7 @@ func FindOne[T any](ctx context.Context, dao DAO[T], opts ...Option) (entity *T,
 	return
 }
 
-func InsertOne[T any](ctx context.Context, dao DAO[T], do any, opts ...Option) (lastInsertID int64, err error) {
+func Insert[T any](ctx context.Context, dao DAO[T], do any, opts ...Option) (affected int64, err error) {
 	options := parseOptions(opts...)
 
 	model := dao.Ctx(ctx)
@@ -217,7 +218,17 @@ func InsertOne[T any](ctx context.Context, dao DAO[T], do any, opts ...Option) (
 		)
 	}
 
-	return model.InsertAndGetId(do)
+	var result sql.Result
+	if options.duplicate != nil {
+		result, err = model.OnDuplicate(options.duplicate).Save(do)
+	} else {
+		result, err = model.Insert(do)
+	}
+	if err != nil {
+		return
+	}
+
+	return result.RowsAffected()
 }
 
 func UpdateOne[T any](ctx context.Context, dao DAO[T], do any, opts ...Option) (affected int64, err error) {
