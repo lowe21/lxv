@@ -36,10 +36,12 @@ func WithFields(fields ...any) Option {
 	}
 }
 
-func WithUK(column string, value any) Option {
+func WithUK(uk gdb.Map) Option {
 	return func(options *Options) {
-		if column != "" {
-			options.uk[column] = value
+		for column, value := range uk {
+			if column != "" {
+				options.uk[column] = value
+			}
 		}
 	}
 }
