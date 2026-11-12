@@ -19,6 +19,7 @@ type Options struct {
 	cacheKey   string
 	cacheKeys  []string
 	conditions []gdb.Map
+	partition  gdb.Map
 	duplicate  gdb.Map
 	column     string
 	order      string
@@ -58,6 +59,14 @@ func WithCondition(condition gdb.Map) Option {
 	return func(options *Options) {
 		if len(condition) > 0 {
 			options.conditions = append(options.conditions, condition)
+		}
+	}
+}
+
+func WithPartition(partition gdb.Map) Option {
+	return func(options *Options) {
+		if len(partition) > 0 {
+			options.partition = partition
 		}
 	}
 }

@@ -202,6 +202,9 @@ func FindOne[T any](ctx context.Context, dao DAO[T], opts ...Option) (entity *T,
 			cacheOption(dao.DB(), dao.Table(), options.cacheKey, time.Hour),
 		)
 	}
+	if len(options.partition) > 0 {
+		model = model.Where(options.partition)
+	}
 
 	err = model.Scan(&entity)
 
