@@ -21,44 +21,6 @@ type DAO[T any] interface {
 	Entity() *T
 }
 
-func Model[T any](ctx context.Context, dao DAO[T], fields ...any) (model *gdb.Model, err error) {
-	model = dao.Ctx(ctx)
-
-	if len(fields) > 0 {
-		return model.Fields(fields...), nil
-	}
-
-	if !gstr.Equal(dao.DB().GetConfig().Type, "mysql") {
-		return
-	}
-
-	tableFields, err := model.TableFields(dao.Table())
-	if err != nil {
-		return
-	}
-
-	columns := make([]*gdb.TableField, 0, len(tableFields))
-	for _, tableField := range tableFields {
-		columns = append(columns, tableField)
-	}
-	sort.Slice(columns, func(i, j int) bool {
-		return columns[i].Index < columns[j].Index
-	})
-
-	fields = make([]any, 0, len(columns))
-	for _, column := range columns {
-		field := model.QuoteWord(column.Name)
-		switch gstr.ToUpper(column.Type) {
-		case "POLYGON", "MULTIPOLYGON":
-			fields = append(fields, gdb.Raw("ST_AsGeoJSON("+field+") AS "+field))
-		default:
-			fields = append(fields, field)
-		}
-	}
-
-	return model.Fields(fields...), nil
-}
-
 func Transaction[T any](ctx context.Context, dao DAO[T], fn func(context.Context, gdb.TX) error) (err error) {
 	if fn != nil {
 		inTransaction := gdb.TXFromCtx(ctx, dao.DB().GetGroup()) != nil
@@ -89,9 +51,7 @@ func Exist[T any](ctx context.Context, dao DAO[T], opts ...Option) (exist bool, 
 	options := parseOptions(opts...)
 
 	model := dao.Ctx(ctx)
-	for _, condition := range options.conditions {
-		model = model.Where(condition)
-	}
+	model = applyWhere(model, options.conditions, options.conditionOrs)
 
 	return model.Exist()
 }
@@ -100,9 +60,7 @@ func Count[T any](ctx context.Context, dao DAO[T], opts ...Option) (count int, e
 	options := parseOptions(opts...)
 
 	model := dao.Ctx(ctx)
-	for _, condition := range options.conditions {
-		model = model.Where(condition)
-	}
+	model = applyWhere(model, options.conditions, options.conditionOrs)
 
 	return model.Count()
 }
@@ -111,9 +69,7 @@ func Sum[T any](ctx context.Context, dao DAO[T], opts ...Option) (sum float64, e
 	options := parseOptions(opts...)
 
 	model := dao.Ctx(ctx)
-	for _, condition := range options.conditions {
-		model = model.Where(condition)
-	}
+	model = applyWhere(model, options.conditions, options.conditionOrs)
 
 	return model.Sum(options.column)
 }
@@ -122,9 +78,7 @@ func Avg[T any](ctx context.Context, dao DAO[T], opts ...Option) (avg float64, e
 	options := parseOptions(opts...)
 
 	model := dao.Ctx(ctx)
-	for _, condition := range options.conditions {
-		model = model.Where(condition)
-	}
+	model = applyWhere(model, options.conditions, options.conditionOrs)
 
 	return model.Avg(options.column)
 }
@@ -132,13 +86,11 @@ func Avg[T any](ctx context.Context, dao DAO[T], opts ...Option) (avg float64, e
 func FindList[T any](ctx context.Context, dao DAO[T], opts ...Option) (entities []*T, totalCount int, err error) {
 	options := parseOptions(opts...)
 
-	model, err := Model(ctx, dao, options.fields...)
+	model, err := findModel(ctx, dao, options.fields...)
 	if err != nil {
 		return
 	}
-	for _, condition := range options.conditions {
-		model = model.Where(condition)
-	}
+	model = applyWhere(model, options.conditions, options.conditionOrs)
 	if options.order != "" {
 		model = model.Order(options.order)
 	}
@@ -162,13 +114,11 @@ func FindList[T any](ctx context.Context, dao DAO[T], opts ...Option) (entities 
 func FindAll[T any](ctx context.Context, dao DAO[T], opts ...Option) (entities []*T, err error) {
 	options := parseOptions(opts...)
 
-	model, err := Model(ctx, dao, options.fields...)
+	model, err := findModel(ctx, dao, options.fields...)
 	if err != nil {
 		return
 	}
-	for _, condition := range options.conditions {
-		model = model.Where(condition)
-	}
+	model = applyWhere(model, options.conditions, options.conditionOrs)
 	if options.order != "" {
 		model = model.Order(options.order)
 	}
@@ -188,16 +138,13 @@ func FindOne[T any](ctx context.Context, dao DAO[T], opts ...Option) (entity *T,
 		return
 	}
 
-	model, err := Model(ctx, dao)
+	model, err := findModel(ctx, dao)
 	if err != nil {
 		return
 	}
 	model = model.Where(options.uk)
-	if len(options.conditions) > 0 {
-		for _, condition := range options.conditions {
-			model = model.Where(condition)
-		}
-	} else {
+	model = applyWhere(model, options.conditions, options.conditionOrs)
+	if len(options.conditions) == 0 && len(options.conditionOrs) == 0 {
 		model = model.Cache(
 			cacheOption(dao.DB(), dao.Table(), options.cacheKey, time.Hour),
 		)
@@ -242,9 +189,7 @@ func UpdateOne[T any](ctx context.Context, dao DAO[T], do any, opts ...Option) (
 	}
 
 	model := dao.Ctx(ctx).Where(options.uk)
-	for _, condition := range options.conditions {
-		model = model.Where(condition)
-	}
+	model = applyWhere(model, options.conditions, options.conditionOrs)
 	if len(options.cacheKeys) > 0 {
 		model = model.Hook(
 			cacheHandler(dao.DB(), dao.Table(), options.cacheKeys...),
@@ -274,9 +219,7 @@ func DeleteOne[T any](ctx context.Context, dao DAO[T], opts ...Option) (affected
 	}
 
 	model := dao.Ctx(ctx).Where(options.uk)
-	for _, condition := range options.conditions {
-		model = model.Where(condition)
-	}
+	model = applyWhere(model, options.conditions, options.conditionOrs)
 	if len(options.cacheKeys) > 0 {
 		model = model.Hook(
 			cacheHandler(dao.DB(), dao.Table(), options.cacheKeys...),
@@ -315,4 +258,57 @@ func DeleteCache[T any](ctx context.Context, dao DAO[T], opts ...Option) (err er
 	}
 
 	return
+}
+
+func findModel[T any](ctx context.Context, dao DAO[T], fields ...any) (model *gdb.Model, err error) {
+	model = dao.Ctx(ctx)
+
+	if len(fields) > 0 {
+		return model.Fields(fields...), nil
+	}
+
+	if !gstr.Equal(dao.DB().GetConfig().Type, "mysql") {
+		return
+	}
+
+	tableFields, err := model.TableFields(dao.Table())
+	if err != nil {
+		return
+	}
+
+	columns := make([]*gdb.TableField, 0, len(tableFields))
+	for _, tableField := range tableFields {
+		columns = append(columns, tableField)
+	}
+	sort.Slice(columns, func(i, j int) bool {
+		return columns[i].Index < columns[j].Index
+	})
+
+	fields = make([]any, 0, len(columns))
+	for _, column := range columns {
+		field := model.QuoteWord(column.Name)
+		switch gstr.ToUpper(column.Type) {
+		case "POLYGON", "MULTIPOLYGON":
+			fields = append(fields, gdb.Raw("ST_AsGeoJSON("+field+") AS "+field))
+		default:
+			fields = append(fields, field)
+		}
+	}
+
+	return model.Fields(fields...), nil
+}
+
+func applyWhere(model *gdb.Model, conditions []gdb.Map, conditionOrs []gdb.Map) *gdb.Model {
+	for _, condition := range conditions {
+		model = model.Where(condition)
+	}
+	for _, conditionOr := range conditionOrs {
+		builder := model.Builder()
+		for column, value := range conditionOr {
+			builder = builder.WhereOr(column, value)
+		}
+		model = model.Where(builder)
+	}
+
+	return model
 }

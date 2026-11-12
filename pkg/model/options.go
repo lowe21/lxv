@@ -14,17 +14,18 @@ const (
 )
 
 type Options struct {
-	fields     []any
-	uk         gdb.Map
-	cacheKey   string
-	cacheKeys  []string
-	conditions []gdb.Map
-	partition  gdb.Map
-	duplicate  gdb.Map
-	column     string
-	order      string
-	page       int
-	limit      int
+	fields       []any
+	uk           gdb.Map
+	cacheKey     string
+	cacheKeys    []string
+	conditions   []gdb.Map
+	conditionOrs []gdb.Map
+	partition    gdb.Map
+	duplicate    gdb.Map
+	column       string
+	order        string
+	page         int
+	limit        int
 }
 
 type Option func(*Options)
@@ -59,6 +60,14 @@ func WithCondition(condition gdb.Map) Option {
 	return func(options *Options) {
 		if len(condition) > 0 {
 			options.conditions = append(options.conditions, condition)
+		}
+	}
+}
+
+func WithConditionOr(conditionOr gdb.Map) Option {
+	return func(options *Options) {
+		if len(conditionOr) > 0 {
+			options.conditionOrs = append(options.conditionOrs, conditionOr)
 		}
 	}
 }
