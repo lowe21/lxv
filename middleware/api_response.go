@@ -19,8 +19,9 @@ var (
 		"application/octet-stream",
 		"multipart/x-mixed-replace",
 	}
-	httpStatus = func() map[string]int {
-		errMap := map[error]int{
+	statusMap = func() map[string]int {
+		data := make(map[string]int)
+		for err, status := range map[error]int{
 			errcode.ErrGateway:          http.StatusBadGateway,
 			errcode.ErrSystemBusy:       http.StatusServiceUnavailable,
 			errcode.ErrInvalidRequest:   http.StatusBadRequest,
@@ -31,15 +32,12 @@ var (
 			errcode.ErrAuthFailed:       http.StatusUnauthorized,
 			errcode.ErrValidationFailed: http.StatusBadRequest,
 			errcode.ErrPermissionDenied: http.StatusForbidden,
-		}
-
-		statusMap := make(map[string]int, len(errMap))
-		for err, status := range errMap {
+		} {
 			subCode, _ := errcode.Parse(err)
-			statusMap[subCode] = status
+			data[subCode] = status
 		}
 
-		return statusMap
+		return data
 	}()
 )
 
@@ -69,11 +67,11 @@ func APIResponse(request *ghttp.Request) {
 		g.Log().Error(ctx, err, request.RequestURI, request.GetBodyString())
 		request.Response.ClearBuffer()
 		subCode, message = errcode.Parse(err)
-		if status, ok := httpStatus[subCode]; ok {
-			request.Response.WriteHeader(status)
-		} else {
-			request.Response.WriteHeader(http.StatusInternalServerError)
+		status, ok := statusMap[subCode]
+		if !ok {
+			status = http.StatusInternalServerError
 		}
+		request.Response.WriteHeader(status)
 	} else {
 		if request.Response.Status >= http.StatusMultipleChoices {
 			if request.Response.Status >= http.StatusBadRequest {
