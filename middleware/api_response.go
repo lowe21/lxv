@@ -13,11 +13,35 @@ import (
 	"github.com/lowe21/lxv/pkg/errcode"
 )
 
-var streamTypes = []string{
-	"text/event-stream",
-	"application/octet-stream",
-	"multipart/x-mixed-replace",
-}
+var (
+	streamTypes = []string{
+		"text/event-stream",
+		"application/octet-stream",
+		"multipart/x-mixed-replace",
+	}
+	httpStatus = func() map[string]int {
+		errMap := map[error]int{
+			errcode.ErrGateway:          http.StatusBadGateway,
+			errcode.ErrSystemBusy:       http.StatusServiceUnavailable,
+			errcode.ErrInvalidRequest:   http.StatusBadRequest,
+			errcode.ErrInvalidEvent:     http.StatusBadRequest,
+			errcode.ErrInvalidParam:     http.StatusBadRequest,
+			errcode.ErrInvalidSign:      http.StatusBadRequest,
+			errcode.ErrInvalidToken:     http.StatusUnauthorized,
+			errcode.ErrAuthFailed:       http.StatusUnauthorized,
+			errcode.ErrValidationFailed: http.StatusBadRequest,
+			errcode.ErrPermissionDenied: http.StatusForbidden,
+		}
+
+		statusMap := make(map[string]int, len(errMap))
+		for err, status := range errMap {
+			subCode, _ := errcode.Parse(err)
+			statusMap[subCode] = status
+		}
+
+		return statusMap
+	}()
+)
 
 func APIResponse(request *ghttp.Request) {
 	if request.GetError() == nil {
@@ -45,6 +69,11 @@ func APIResponse(request *ghttp.Request) {
 		g.Log().Error(ctx, err, request.RequestURI, request.GetBodyString())
 		request.Response.ClearBuffer()
 		subCode, message = errcode.Parse(err)
+		if status, ok := httpStatus[subCode]; ok {
+			request.Response.WriteHeader(status)
+		} else {
+			request.Response.WriteHeader(http.StatusInternalServerError)
+		}
 	} else {
 		if request.Response.Status >= http.StatusMultipleChoices {
 			if request.Response.Status >= http.StatusBadRequest {
