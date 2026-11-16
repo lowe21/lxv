@@ -4,7 +4,7 @@ type (
 	APIReq struct {
 		RequestID string `json:"requestID" valid:"required"      description:"请求ID"`
 		Content   string `json:"content"   valid:"required|json" description:"请求内容"`
-		Timestamp string `json:"timestamp" valid:"required"      description:"时间戳，单位：毫秒"`
+		Timestamp string `json:"timestamp" valid:"required"      description:"时间戳；单位：毫秒"`
 		Sign      string `json:"sign"      valid:""              description:"签名"`
 	}
 	APIRes struct {
