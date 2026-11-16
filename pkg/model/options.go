@@ -128,9 +128,9 @@ func WithLimit(limit int) Option {
 	}
 }
 
-func WithForUpdate(forUpdate bool) Option {
+func WithForUpdate() Option {
 	return func(options *Options) {
-		options.forUpdate = forUpdate
+		options.forUpdate = true
 	}
 }
 
