@@ -125,6 +125,9 @@ func FindAll[T any](ctx context.Context, dao DAO[T], opts ...Option) (entities [
 	if options.limit > 0 {
 		model = model.Limit(options.limit)
 	}
+	if options.forUpdate {
+		model = model.LockUpdate()
+	}
 
 	err = model.Scan(&entities)
 
@@ -144,13 +147,15 @@ func FindOne[T any](ctx context.Context, dao DAO[T], opts ...Option) (entity *T,
 	}
 	model = model.Where(options.uk)
 	model = applyWhere(model, options.conditions, options.conditionOrs)
-	if len(options.conditions) == 0 && len(options.conditionOrs) == 0 {
+	if len(options.partition) > 0 {
+		model = model.Where(options.partition)
+	}
+	if options.forUpdate {
+		model = model.LockUpdate()
+	} else if len(options.conditions) == 0 && len(options.conditionOrs) == 0 {
 		model = model.Cache(
 			cacheOption(dao.DB(), dao.Table(), options.cacheKey, time.Hour),
 		)
-	}
-	if len(options.partition) > 0 {
-		model = model.Where(options.partition)
 	}
 
 	err = model.Scan(&entity)

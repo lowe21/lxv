@@ -26,6 +26,7 @@ type Options struct {
 	order        string
 	page         int
 	limit        int
+	forUpdate    bool
 }
 
 type Option func(*Options)
@@ -124,6 +125,12 @@ func WithLimit(limit int) Option {
 		if limit > 0 {
 			options.limit = limit
 		}
+	}
+}
+
+func WithForUpdate(forUpdate bool) Option {
+	return func(options *Options) {
+		options.forUpdate = forUpdate
 	}
 }
 
