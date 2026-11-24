@@ -51,7 +51,7 @@ func Exist[T any](ctx context.Context, dao DAO[T], opts ...Option) (exist bool, 
 	options := parseOptions(opts...)
 
 	model := dao.Ctx(ctx)
-	model = applyWhere(model, options.conditions, options.conditionOrs)
+	model = applyWhere(model, options)
 
 	return model.Exist()
 }
@@ -60,7 +60,7 @@ func Count[T any](ctx context.Context, dao DAO[T], opts ...Option) (count int, e
 	options := parseOptions(opts...)
 
 	model := dao.Ctx(ctx)
-	model = applyWhere(model, options.conditions, options.conditionOrs)
+	model = applyWhere(model, options)
 
 	return model.Count()
 }
@@ -69,7 +69,7 @@ func Sum[T any](ctx context.Context, dao DAO[T], opts ...Option) (sum float64, e
 	options := parseOptions(opts...)
 
 	model := dao.Ctx(ctx)
-	model = applyWhere(model, options.conditions, options.conditionOrs)
+	model = applyWhere(model, options)
 
 	return model.Sum(options.column)
 }
@@ -78,19 +78,54 @@ func Avg[T any](ctx context.Context, dao DAO[T], opts ...Option) (avg float64, e
 	options := parseOptions(opts...)
 
 	model := dao.Ctx(ctx)
-	model = applyWhere(model, options.conditions, options.conditionOrs)
+	model = applyWhere(model, options)
 
 	return model.Avg(options.column)
+}
+
+func FindModel[T any](ctx context.Context, dao DAO[T], opts ...Option) (model *gdb.Model, err error) {
+	options := parseOptions(opts...)
+
+	return findModel(ctx, dao, options)
 }
 
 func FindList[T any](ctx context.Context, dao DAO[T], opts ...Option) (entities []*T, totalCount int, err error) {
 	options := parseOptions(opts...)
 
-	model, err := findModel(ctx, dao, options.fields...)
+	model, err := findModel(ctx, dao, options)
 	if err != nil {
 		return
 	}
-	model = applyWhere(model, options.conditions, options.conditionOrs)
+	if options.order != "" {
+		model = model.Order(options.order)
+	}
+	if options.page <= 0 {
+		options.page = 1
+	}
+	if options.limit <= 0 {
+		options.limit = 10
+	}
+
+	result, totalCount, err := model.Page(options.page, options.limit).AllAndCount(true)
+	if err != nil {
+		return
+	}
+
+	err = result.Structs(&entities)
+
+	return
+}
+
+func FindListUnionAll[T any](ctx context.Context, dao DAO[T], models []*gdb.Model, opts ...Option) (entities []*T, totalCount int, err error) {
+	options := parseOptions(opts...)
+
+	if len(models) == 0 {
+		err = errcode.New(gcode.CodeDbOperationError, "union models are empty")
+		return
+	}
+
+	model := dao.DB().Model("(?) AS `t`", dao.Ctx(ctx).UnionAll(models...)).Ctx(ctx).Unscoped()
+	model = applyWhere(model, options)
 	if options.order != "" {
 		model = model.Order(options.order)
 	}
@@ -114,11 +149,10 @@ func FindList[T any](ctx context.Context, dao DAO[T], opts ...Option) (entities 
 func FindAll[T any](ctx context.Context, dao DAO[T], opts ...Option) (entities []*T, err error) {
 	options := parseOptions(opts...)
 
-	model, err := findModel(ctx, dao, options.fields...)
+	model, err := findModel(ctx, dao, options)
 	if err != nil {
 		return
 	}
-	model = applyWhere(model, options.conditions, options.conditionOrs)
 	if options.order != "" {
 		model = model.Order(options.order)
 	}
@@ -140,13 +174,13 @@ func FindOne[T any](ctx context.Context, dao DAO[T], opts ...Option) (entity *T,
 		err = errcode.New(gcode.CodeDbOperationError, "unique key is empty")
 		return
 	}
+	options.fields = nil
 
-	model, err := findModel(ctx, dao)
+	model, err := findModel(ctx, dao, options)
 	if err != nil {
 		return
 	}
 	model = model.Where(options.uk)
-	model = applyWhere(model, options.conditions, options.conditionOrs)
 	if len(options.partition) > 0 {
 		model = model.Where(options.partition)
 	}
@@ -194,7 +228,7 @@ func UpdateOne[T any](ctx context.Context, dao DAO[T], do any, opts ...Option) (
 	}
 
 	model := dao.Ctx(ctx).Where(options.uk)
-	model = applyWhere(model, options.conditions, options.conditionOrs)
+	model = applyWhere(model, options)
 	if len(options.cacheKeys) > 0 {
 		model = model.Hook(
 			cacheHandler(dao.DB(), dao.Table(), options.cacheKeys...),
@@ -224,7 +258,7 @@ func DeleteOne[T any](ctx context.Context, dao DAO[T], opts ...Option) (affected
 	}
 
 	model := dao.Ctx(ctx).Where(options.uk)
-	model = applyWhere(model, options.conditions, options.conditionOrs)
+	model = applyWhere(model, options)
 	if len(options.cacheKeys) > 0 {
 		model = model.Hook(
 			cacheHandler(dao.DB(), dao.Table(), options.cacheKeys...),
@@ -265,14 +299,16 @@ func DeleteCache[T any](ctx context.Context, dao DAO[T], opts ...Option) (err er
 	return
 }
 
-func findModel[T any](ctx context.Context, dao DAO[T], fields ...any) (model *gdb.Model, err error) {
+func findModel[T any](ctx context.Context, dao DAO[T], options *Options) (model *gdb.Model, err error) {
 	model = dao.Ctx(ctx)
 
-	if len(fields) > 0 {
-		return model.Fields(fields...), nil
+	if len(options.fields) > 0 {
+		model = applyWhere(model.Fields(options.fields...), options)
+		return
 	}
 
 	if !gstr.Equal(dao.DB().GetConfig().Type, "mysql") {
+		model = applyWhere(model, options)
 		return
 	}
 
@@ -289,7 +325,7 @@ func findModel[T any](ctx context.Context, dao DAO[T], fields ...any) (model *gd
 		return columns[i].Index < columns[j].Index
 	})
 
-	fields = make([]any, 0, len(columns))
+	fields := make([]any, 0, len(columns))
 	for _, column := range columns {
 		field := model.QuoteWord(column.Name)
 		switch gstr.ToUpper(column.Type) {
@@ -300,14 +336,17 @@ func findModel[T any](ctx context.Context, dao DAO[T], fields ...any) (model *gd
 		}
 	}
 
-	return model.Fields(fields...), nil
+	return applyWhere(model.Fields(fields...), options), nil
 }
 
-func applyWhere(model *gdb.Model, conditions []gdb.Map, conditionOrs []gdb.Map) *gdb.Model {
-	for _, condition := range conditions {
+func applyWhere(model *gdb.Model, options *Options) *gdb.Model {
+	if options.omitNilCondition {
+		model = model.OmitNilWhere()
+	}
+	for _, condition := range options.conditions {
 		model = model.Where(condition)
 	}
-	for _, conditionOr := range conditionOrs {
+	for _, conditionOr := range options.conditionOrs {
 		builder := model.Builder()
 		for column, value := range conditionOr {
 			builder = builder.WhereOr(column, value)
